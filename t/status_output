@@ -1,0 +1,38 @@
+
+ the statusHashRef: $VAR1 = [
+          {
+            'qavariables_id' => '1',
+            'status' => '0',
+            'status_count' => '44'
+          },
+          {
+            'qavariables_id' => '1',
+            'status' => '4',
+            'status_count' => '53'
+          },
+          {
+            'qavariables_id' => '7',
+            'status' => '3',
+            'status_count' => '178'
+          },
+          {
+            'qavariables_id' => '7',
+            'status' => '1',
+            'status_count' => '10'
+          },
+          {
+            'qavariables_id' => '7',
+            'status' => '2',
+            'status_count' => '253'
+          },
+          {
+            'qavariables_id' => '1',
+            'status' => '1',
+            'status_count' => '14'
+          },
+          {
+            'qavariables_id' => '1',
+            'status' => '5',
+            'status_count' => '113'
+          }
+        ];
