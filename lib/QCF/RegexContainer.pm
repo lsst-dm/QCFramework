@@ -43,7 +43,8 @@ sub new{
 	my $execDefsDetails;
 	$verbose = $infoHashref->{'verbose'};
 	$self->{_desdbh} = DB::DESUtil->new(	DBIattr => {   AutoCommit => 0,     RaiseError => 1,   PrintError => 0	}) or print "\n #### THE ERROR in connecting to db $! ";
-	$execDefsDetails = getExecDefDets($self->{_desdbh},$infoHashref->{'execdefs_id'});
+## use the execdefs_id given in the qcf controller param list to get the details about which exec,module,job were used for this qa log file 
+	$execDefsDetails = getExecDefDets($self->{_desdbh},$infoHashref->{'execdefs_id'}); 
 	$self->{execdefs_id} = $infoHashref->{'execdefs_id'};
 	$self->{exec_id} = $execDefsDetails->{'exec_id'};
 	$self->{module_id} = $execDefsDetails->{'module_id'};
@@ -70,6 +71,10 @@ sub getExecDefDets {
 	return $sth->fetchrow_hashref();
 }
 
+
+###
+# This function gets the regex hash for execid extracted from the execdefs table , whose execdefs_id was provided in the param list of qcf controller
+###
 sub getRegexHash {
         my $self = shift;
 	my ($exec_id) = @_;
@@ -109,7 +114,7 @@ sub getRegexHash {
 	}
 	
 	#### Get all the valid patterns for the exec(utable), whose output is being parsed for the QC information. This exec id is linked to the exec table, which contains a list of all the executables in the system
-	my $patternSql = qq{select * from QA_PATTERNS  where valid = 'y' and exec_id = $exec_id  };
+	my $patternSql = qq{select * from QA_PATTERNS  where valid = 'y' and exec_id in( $exec_id,0)  };
 	print "\n the query to get patterns: $patternSql" if ($verbose >= 2);
 	my $patternSth = $self->{_desdbh}->prepare($patternSql) or print "Error in preparing $!";
 	$patternSth->execute();

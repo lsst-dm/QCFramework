@@ -102,18 +102,21 @@ sub extractQAData
 		$mode = "buffer";
 		@lines = split("\n",$buffer);
 	}
-	if(defined $verbose >= 1){print "\n\n ##### Reading lines from $mode...  #####\n\n";}
+	if(defined $verbose >= 1){print "\n\n ##### Processing lines from $mode...  #####\n\n";}
 
 	foreach my $line (@lines) {
 		chomp($line);
+		if( $verbose >= 2){print "\n\n Working on line $line\n\n";}
 		###foreach my $regexObj ($regexContainerObject->{regex_hash}) {
 		foreach my $regexObj ($self->{_regexContainer}->{regex_hash}) {
 			foreach my $regexHash (@$regexObj) { # Loop through the patterns
 				$regexPattern = $regexHash->{'pattern'};
+				if(defined $verbose >= 1){print "\n\n Current Pattern: $regexPattern\n\n";}
 				$regexCompiled = qr/$regexPattern/sm;
 				##### match the regular expression #####
 				#### matched array matchedArr has the values extracted from the line above ####
 				@matchedArr = ($line =~ $regexCompiled);
+				# 3rd argument is what is 
 				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'exec_id'})) {
 			
 				undef @variableIdArr;
@@ -122,8 +125,9 @@ sub extractQAData
 				undef @execTableIdArr;
 				undef @outputIdArr;
 				### Store the line that matched, in to the database ###
-				storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'});
-
+				storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
+				### do not continue with the variables if the exec_id is 0. since thats for status messages only
+				next if($regexHash->{'exec_id'} == 0); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
 				if($verbose >=2){ print " : ",Dumper(@matchedArr);}
 
@@ -180,6 +184,34 @@ sub extractQAData
 }
 
 
+#sub getQAInfo {
+#
+#	my $self = shift;
+#        my ($infoHashref) = @_;
+#        my $getStatusHash;
+#	my $sth;	
+#	my $desjob_dbid;
+#	my $sqlGetInfo = "Select threshold.intensity as status, out.qavariables_id from qa_output out, qaf_messages messages , qa_threshold threshold, execdefs where ";
+#	my $row;
+#	my $logFile = $infoHashref->{'logfile'};
+#	open( my $logFileHandle, ">$logFile" );
+#        if(defined $infoHashref->{'run'})
+#        {
+#		$sqlGetInfo .= ' block.run_id = '.$infoHashref->{'run'}.' and desjob.block_id = block.id and execdefs.desjob_id = desjob.id and execdefs.id = qa_output.execdefs_id and qaf_messages.pattern_id = qa_variables.id and qa_output.qavariables_id = qa_variables.id';
+#        }
+#
+#	my $sqlGetStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from qa_output out, qa_threshold threshold, execdefs  where execdefs.desjob_dbid = $desjob_dbid and out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
+#	$sth = $self->{_desdbh)->prepare($sqlGetInfo);
+#	$sth->execute();
+#	while($row = $sth->fetchrow_hashref()){
+#		print $logFileHandle, $infoHashref->{'run'}."\t".$row->{'message'}.
+#		
+#	}
+#        return $getStatusHash;
+#
+#
+#}
+#
 ####
 ## This subroutine cleans a filepath of the machine dependent part, and makes it compliant with DES file naming conventions.
 ###
@@ -214,12 +246,14 @@ sub getNextOutputID {
 
 }
 
-
+###
+# this function matches the exec table id given as a param to the controller with the exec id belonging to the pattern
+###
 sub execMatched {
 
 	my ($self, $regexHash, $execTableId) = @_;
 	print "\n matching exec $execTableId with ", $regexHash->{'exec_id'} if($verbose >=2);
-	return 1 if($regexHash->{'exec_id'} == $execTableId);
+	return 1 if($regexHash->{'exec_id'} == $execTableId || $regexHash->{'exec_id'} == 0);
 }
 
 
@@ -285,13 +319,13 @@ sub applyThresholdRules {
 
 sub storeQAFMessage {
 
-	my ($self,$line,$execTableId) = @_;
+	my ($self,$line,$execTableId,$patternId) = @_;
 	my $sql;
 	my $sqlSth;
-	#print "\n the qaf message line: $line, and qaf message id $desJob_dbId";
-	$sql = "insert into qaf_messages values ($execTableId,\'$line\')";
-	#$sql = "insert into qaf_messages values ($desJobId)";
-	#print "\n the string before inserting in 165 $sql ";
+	if(!defined $patternId) {
+	$patternId = 0;	
+	}
+	$sql = "insert into qaf_messages values ($execTableId,\'$line\',$patternId)";
 	$sqlSth = $self->{_desdbh}->prepare($sql) or print "Error in preparing $!";
         $sqlSth->execute() or print "\n\t ### error -> $! ###";#logError($!);
 }
