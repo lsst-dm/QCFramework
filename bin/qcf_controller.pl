@@ -7,25 +7,27 @@ use FileHandle;
 use QCFramework;
 use Getopt::Long;
 
-my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execTableId,$node,$verbose);
+my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath);
 
 $verbose = 0;
 Getopt::Long::GetOptions(
     "filelist=s"    => \$fileList,
-    "execTableId=i"     => \$execTableId,
+    "execDefsId=i"     => \$execDefsId,
     "node=i"     => \$node,
     "verbose=i"     => \$verbose,
+    "filePath:s"     => \$filePath,
 ) or usage("Invalid command line options\n");
 
-usage("Please supply the execTableId parameter") unless defined $execTableId;
+usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 
         my $patternHash;
-	print "\n ************** CALLING QAF IN Controller with execTableId $execTableId";
+	print "\n ************** CALLING QAF IN Controller with execDefsId $execDefsId";
 	
 	$infoHashref->{'desjob_dbid'} = $desjob_dbid;
-	$infoHashref->{'execdefs_id'} = $execTableId;
+	$infoHashref->{'execdefs_id'} = $execDefsId;
 	$infoHashref->{'node'} = $node;
 	$infoHashref->{'verbose'} = $verbose;
+	$infoHashref->{'filepath'} = $fileList;
 
 	my $qaFramework = QCFramework->new($infoHashref);
 	### 
@@ -47,7 +49,10 @@ usage("Please supply the execTableId parameter") unless defined $execTableId;
 		print "\n ### STDIN READ MODE###" if($verbose >= 1);
 		while (defined ($stdinBuffer = <STDIN>)){
 			chomp($stdinBuffer);
+			if(length($stdinBuffer) > 0){
+			print "\n\n\n #### ANKIT CHANDRA---->",$stdinBuffer,"<---------- ANKIT CHANDRA";
 			$qaFramework->extractQAData($line,$stdinBuffer,$infoHashref);
+			}
 		}
 	}
 
@@ -67,10 +72,10 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-	  . " -filelist files -desjob_dbid UniqueDBIdForJob -execTableId IdOfTheExecFileFromExecTable\n"
-	  . "       filelist contains the list of files along with the full path\n"
+	  . " -filelist files -desjob_dbid UniqueDBIdForJob -execDefsId IdOfTheExecFileFromExecTable\n"
+	  . "       filelist contains the list of files along with the full path. Either provide the filelist, or cat a file content to this script\n"
           . "       desjob_dbid is the unique Database ID for the DESJob\n"
-          . "       execTableId is the id of the executable file which was run for this log.\n"
+          . "       execDefsId is the id from the execdefs table which was run for this log.\n"
     );
 
     die("\n")

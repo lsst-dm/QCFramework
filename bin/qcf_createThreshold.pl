@@ -28,9 +28,9 @@ if (length($mon) == 1){
 	#$mon = "0".$mon;
 }
 ######################### PATTERN CONFIG #######################
-my $patternId = getnextId('qa_patterns',$desdbh);
+my $patternId = getnextId('qa_threshold',$desdbh);
 $patternHash->{'id'} = $patternId;
-$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
+$patternHash->{'pattern'} = "'STATUS2BEG\s*Image\s*(\/.*\.\w+)\s*\:\s*band\=(\w?)\s*ZP\=\s*(\d+\.?\d+)\s*STATUS2END'";
 $patternHash->{'valid'} = "'y'";
 $patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
 $patternHash->{'type'} = "'qa'";
@@ -50,19 +50,9 @@ $variableHash->{'valid'} = "'y'";
 $variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
 $variableHash->{'action_code'} = 1;
 
-#$thresholdHash->{'id'} = $variableHash->{'id'} ;
-#$thresholdHash->{'min_value'} = 24;
-#$thresholdHash->{'max_value'} = 32;
-#$thresholdHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-#$thresholdHash->{'valid'} = "'y'";
-#$thresholdHash->{'intensity'} = 4;
-#$thresholdHash->{'type'} = '';
-
 push @allVars, $variableHash;
 
 undef $variableHash;
-
-
 $variableHash->{'id'} = getnextId('qa_variables',$desdbh);
 $variableHash->{'name'} = "'Band'";
 $variableHash->{'pretty_name'} = "'Coadd Catalog Band'";
@@ -88,19 +78,6 @@ $variableHash->{'action_code'} = 0;
 push @allVars, $variableHash;
 
 ######################### VARIABLE CONFIG #######################
-
-
-print "\n The Pattern to be created is: ",Dumper($patternHash);
-print "\n The Variables to be created are: ",Dumper(@allVars);
-
-print "\n\n Do you want to continue creating them? (y/n)\n";
-my $confirm = <STDIN>;
- if (trim($confirm) eq 'n'){
-$desdbh->disconnect();
-die("\n\n exiting the program...");
-}
-
-
 
 
 my $sqlPattern = 'insert into qa_patterns values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
@@ -177,13 +154,5 @@ sub usage {
 
     die("\n")
 
-}
-
-sub trim
-{
-        my $string = shift;
-        $string =~ s/^\s+//;
-        $string =~ s/\s+$//;
-        return $string;
 }
 

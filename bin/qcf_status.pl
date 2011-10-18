@@ -9,7 +9,7 @@ use Getopt::Long;
 use Data::Dumper;
 
         my $patternHash;
-	my ($fileList,$stdinBuffer,$line,$infoHashref,$node);
+	my ($fileList,$stdinBuffer,$line,$infoHashref,$node,$filePath);	
 	my ($desjob_dbid,$project,$run,$desjob_id,$verbose);
 	
 Getopt::Long::GetOptions(
@@ -18,6 +18,7 @@ Getopt::Long::GetOptions(
     "run:s"     => \$run,
     "desjob_id:s"     => \$desjob_id,
     "verbose:i"     => \$verbose,
+    "filePath:s"     => \$filePath,
 ) or usage("Invalid command line options\n");
 
 usage("You must supply atleast desjob_dbid to proceed") unless defined $desjob_dbid;
@@ -27,6 +28,7 @@ usage("You must supply atleast desjob_dbid to proceed") unless defined $desjob_d
 	$infoHashref->{'run'} = $run;
 	$infoHashref->{'desjob_id'} = $desjob_id;
 	$infoHashref->{'verbose'} = $verbose;
+	$infoHashref->{'filepath'} = $filePath;
 
 	my $qaFramework = QCFramework->new($infoHashref);
 
@@ -50,9 +52,9 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-          . " -execdefs_id ExecDefsTableId -project ProjectNameString -run RunNumber -desjob_id DESJobSubmitId \n"
-          . "       DESJobIdUniqueDBId is the unique DB id associated in the DB with every DB Job.\n"
-          . "       if desjob_dbid is NOT known, Jobs can be identified by providing a bunch of other variables together:\n"
+          . " -desjob_dbid DESJobID -project ProjectNameString -run RunNumber -desjob_id DESJobSubmitId \n"
+          . "       DESJobId is the unique DB id associated in the DB with every DB Job.\n"
+          #. "       (to be implemented)if desjob_dbid is NOT known, Jobs can be identified by providing a bunch of other variables together:\n"
           . "          project: The name of the project 'DES', run: The run number, desjob_id: The submit ID for jobs\n"
     );
 
