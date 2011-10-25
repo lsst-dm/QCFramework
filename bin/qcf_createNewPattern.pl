@@ -30,7 +30,7 @@ if (length($mon) == 1){
 ######################### PATTERN CONFIG #######################
 my $patternId = getnextId('qa_patterns',$desdbh);
 $patternHash->{'id'} = $patternId;
-$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
+$patternHash->{'pattern'} = "'astromchi2_reference\\s*\\[(\\S*)\\]\\s*\\[(\\S*)\\]'";
 $patternHash->{'valid'} = "'y'";
 $patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
 $patternHash->{'type'} = "'qa'";
@@ -42,13 +42,13 @@ $patternHash->{'exec_id'} = 0;
 ######################### VARIABLE CONFIG #######################
 
 $variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'Image'";
-$variableHash->{'pretty_name'} = "'Image'";
+$variableHash->{'name'} = "'astromchi2_reference_1'";
+$variableHash->{'pretty_name'} = "'astromchi2_reference_1'";
 $variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'pattern_location'} = 1;
 $variableHash->{'valid'} = "'y'";
 $variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$variableHash->{'action_code'} = 1;
+$variableHash->{'action_code'} = 0;
 
 #$thresholdHash->{'id'} = $variableHash->{'id'} ;
 #$thresholdHash->{'min_value'} = 24;
@@ -64,8 +64,8 @@ undef $variableHash;
 
 
 $variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'Band'";
-$variableHash->{'pretty_name'} = "'Coadd Catalog Band'";
+$variableHash->{'name'} = "'astromchi2_reference_2'";
+$variableHash->{'pretty_name'} = "'astromchi2_reference_2'";
 $variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'pattern_location'} = 2;
 $variableHash->{'valid'} = "'y'";
@@ -75,17 +75,17 @@ $variableHash->{'action_code'} = 0;
 push @allVars, $variableHash;
 undef $variableHash;
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'ZP'";
-$variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
-$variableHash->{'pattern_id'} = $patternId;
-$variableHash->{'pattern_location'} = 3;
-$variableHash->{'valid'} = "'y'";
-$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$variableHash->{'action_code'} = 0;
+#$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
+#$variableHash->{'name'} = "'ZP'";
+#$variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
+#$variableHash->{'pattern_id'} = $patternId;
+#$variableHash->{'pattern_location'} = 3;
+#$variableHash->{'valid'} = "'y'";
+#$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
+#$variableHash->{'action_code'} = 0;
 
 
-push @allVars, $variableHash;
+#push @allVars, $variableHash;
 
 ######################### VARIABLE CONFIG #######################
 

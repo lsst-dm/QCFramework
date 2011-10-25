@@ -61,7 +61,7 @@ my ( $resolvedFilenamesArrRef, $runIDS, $nites, $project ) =
 
 
 print "\n the files", Dumper($resolvedFilenamesArrRef);
-#my $fileDets = extractDets(@$resolvedFilenamesArrRef);
+my $fileDets = extractDets(@$resolvedFilenamesArrRef);
 die "done";
 
 
@@ -204,7 +204,7 @@ sub usage {
 
     print STDERR (
         $message,
-           "\nThe purpose of this script is to insert missing rows into MODULES, DESJOB, EXEC, EXECDEFS tables  \n"
+           "\nThe purpose of this script is to insert missing rows into MODULES, DESJOB, EXEC, EXECDEFS tables. It needs a log file which it can open and read to extract information from.  \n"
           . "\n\tusage: perl qcf_insertrows.pl -filelist <filelist> "
           . "\n\tgive it the filelist just as you do to fileingest.\n"
     );

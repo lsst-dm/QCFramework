@@ -182,8 +182,7 @@ sub characters {
                         {
 				push @statusArr, $text
                         }
-                        case 'DESJOBID'
-                        {
+                        case 'DESJOBID' {
 				push @desjobIdArr, $text
                         }
                         case 'RUN'
@@ -228,7 +227,7 @@ sub end_element {
 			case 'QUERY' {
 				foreach (@allTablesNeeded){
 					#print "\n the from component ",Dumper($_);
-					if($sqlFrom !~ /$_/){
+					if($sqlFrom !~ /$_/i){
 					$sqlFrom .= "$_ , ";
 					}
 					#$sqlFrom .= "$_ , ";
@@ -285,6 +284,7 @@ sub end_element {
                         case 'WHERE'
                         {
 				if(scalar @statusArr > 0){
+				$sqlWhereStatus = " qa_output.value between threshold.min_value AND threshold.max_value ";
 				$sqlWhereStatus = " qa_threshold.intensity in (";
 
 				foreach (@statusArr){
@@ -328,9 +328,12 @@ sub end_element {
                                 $sqlWhereRun = substr $sqlWhereRun,0,-2;
                                 $sqlWhereRun .= " )";
 
-                                $sqlWhereRun .= " and desjob.block_id = block.id and execdefs.desjob_id = desjob.id and execdefs.id = qa_output.execdefs_id and qaf_messages.pattern_id = qa_variables.id and qa_output.qavariables_id = qa_variables.id";
+                                $sqlWhereRun .= " and desjob.block_id = block.id and execdefs.desjob_dbid = desjob.id and execdefs.id = qa_output.execdefs_id and qaf_messages.pattern_id = qa_variables.id and qa_output.qavariables_id = qa_variables.id";
 				push @allSqlComponents, $sqlWhereRun;
 				push @allTablesNeeded, 'BLOCK';
+				push @allTablesNeeded, 'desjob';
+				push @allTablesNeeded, 'qa_variables';
+				push @allTablesNeeded, 'execdefs';
                                 } 
 				
                                 # this tag means the where conditions are starting
