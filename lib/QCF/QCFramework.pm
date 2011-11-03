@@ -258,7 +258,8 @@ sub execMatched {
 
 
 sub getQAStatus {
-	
+
+	# support run, block, desjob, module, exec
 	my $self = shift;
 	my ($infoHashref) = @_;
 	my $getStatusHash;
@@ -274,22 +275,68 @@ sub getQAStatus {
 sub getStatusData {
 
 	my $self = shift;
-	my ($desjob_dbid) = @_;
-	my ($sqlFetchJobStatus,$fetchJobStatusSth,$rowFetchStatus,$varHash, $varThreshold,$retStatusArr);
-	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from qa_output out, qa_threshold threshold, execdefs  where execdefs.desjob_dbid = $desjob_dbid and out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
-	print "\n The get status query: $sqlFetchJobStatus " if($verbose >=2);
+	my ($infoHashref) = @_;
+	my ($sqlFetchJobStatus,$fetchJobStatusSth,$rowFetchStatus,$varHash, $varThreshold,$retStatusArr, $sqlFetchStatMsg, @whereClause, @fromTables,$finalWhereForLookup,$finalFromTableForLookup);
+
+	push @fromTables, 'execdefs';
+	if(defined $infoHashref->{'run'}){
+		push @whereClause , ' run.run = \''.$infoHashref->{'run'}.'\' and run.id = block.run_id and desjob.block_id = block.id and module.desjob_id = desjob.id and execdefs.module_id = module.id ';
+		push @fromTables, 'run';
+		push @fromTables, 'block';
+		push @fromTables, 'desjob';
+		push @fromTables, 'module';
+	} elsif(defined $infoHashref->{'block'}){
+	#if(defined $infoHashref->{'block'} && not defined $infoHashref->{'run'}){
+		push @whereClause , ' block.id = '.$infoHashref->{'block_id'}.' and desjob.block_id = block.id and module.desjob_id = desjob.id and execdefs.module_id = module.id ';
+		push @fromTables, 'block';
+		push @fromTables, 'desjob';
+		push @fromTables, 'module';
+	} elsif(defined $infoHashref->{'desjob_dbid'}){
+	#if(defined $infoHashref->{'desjob_dbid'} && not defined $infoHashref->{'block_id'} && not defined $infoHashref->{'run'}){
+		push @whereClause , ' execdefs.desjob_dbid = '.$infoHashref->{'desjob_dbid'};
+		push @fromTables, 'desjob';
+	} elsif(defined $infoHashref->{'module'}){
+		push @whereClause , ' module.id = '.$infoHashref->{'module_id'}.' and execdefs.module_id = module.id ';
+		push @fromTables, 'module';
+	}
+
+	foreach my $whereClause (@whereClause){
+		
+		$finalWhereForLookup .= $whereClause.' and ';
+	}
+	$finalWhereForLookup = substr $finalWhereForLookup,0,-4;
+
+	foreach my $fromTable (@fromTables){
+		if( $finalFromTableForLookup !~ /$fromTable/i){
+		$finalFromTableForLookup .= $fromTable.', ';
+		}	
+	}
+	$finalFromTableForLookup = substr $finalWhereForLookup,0,-2;
+
+	
+	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from$finalFromTableForLookup , qa_output out, qa_threshold threshold where $finalWhereForLookup and out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
+	print "\n The get QA LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
 	#$sqlFetchJobStatus = "select out.qavariables_id, threshold.intensity as status from qa_output out, qa_threshold threshold where out.job_dbid = $desJob_dbId and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value";
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchJobStatus) ;
-	$fetchJobStatusSth->execute() ;
+	$fetchJobStatusSth->execute();
 	while($rowFetchStatus = $fetchJobStatusSth->fetchrow_hashref()){
 		#$varStatus->{$rowFetchStatus->{'qavariables_id'}} = applyThreshold($rowFetchStatus);
 		#$varHash->{$rowFetchStatus->{'qavariables_id'}} = $rowFetchStatus;
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
+	my $sqlFetchStatPatterns = 'select count(pattern_id) as count ,qaf_messages.pattern_id, q2.type as status  from '.$finalFromTableForLookup.', qaf_messages, qa_patterns q1, qa_patterns q2  where q1.type like \'%status%\' and q1.id = qaf_messages.pattern_id and q1.id=q2.id and q2.id= qaf_messages.pattern_id and '.$finalWhereForLookup.' group by qaf_messages.pattern_id, q2.type';
+	print "\n The get STATUS LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
+	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
+	$fetchJobStatusSth->execute();
+	while(my $rowFetchStatusRows = $fetchJobStatusSth->fetchrow_hashref()){
+		#$varStatus->{$rowFetchStatus->{'qavariables_id'}} = applyThreshold($rowFetchStatus);
+		#$varHash->{$rowFetchStatus->{'qavariables_id'}} = $rowFetchStatus;
+		push @$retStatusArr, $rowFetchStatusRows;
+	}
+
 
 	return $retStatusArr;
-	
 }
 
 
