@@ -209,7 +209,7 @@ sub usage {
     print STDERR (
         $message,
            "\nThe purpose of this script is to insert missing rows into MODULES, DESJOB, EXEC, EXECDEFS tables  \n"
-          . "\n\tusage: perl qcf_insertrows.pl -filelist <filelist in fileingest style> "
+          . "\n\tusage: perl qcf_insertrows.pl -filelist <filelist> "
           . "\n\tgive it the filelist just as you do to fileingest.\n"
     );
 

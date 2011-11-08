@@ -41,18 +41,20 @@ our @EXPORT = qw(test
 
 our $VERSION = '0.01';
 
-our $verbose;
+my $verbose;
 $verbose = 0;
 # Preloaded methods go here.
 
 sub new {
         my $self  = {};
 	my ($class,$infoHashref) = @_;
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 	$self->{_desdbh} = DB::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
+	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-mi-ss')";
 	if(defined $infoHashref->{'execdefs_id'}){
 		$self->{_regexContainer} = RegexContainer->new($infoHashref) ;
 	}
-	$verbose = $infoHashref->{'verbose'};
+	$verbose = $infoHashref->{'verbose'} if defined $infoHashref->{'verbose'};
         bless($self);           # but see below
 	#$sql = "select * from qa_patterns";
         return $self;
@@ -165,7 +167,7 @@ sub extractQAData
 						$insertSth->bind_param_array(1,\@variableIdArr);
 						#$insertSth->bind_param_array(1,11);
 						$insertSth->bind_param_array(2,\@extractedValue);
-						$insertSth->bind_param_array(3,undef); # NO ARRAY ONLY SCALAR
+						$insertSth->bind_param_array(3,$self->{_timestamp}); # NO ARRAY ONLY SCALAR
 						$insertSth->bind_param_array(4,\@extraInfoArr);
 						$insertSth->bind_param_array(5,\@execTableIdArr);
 						$insertSth->bind_param_array(6,$outputId);
@@ -277,6 +279,8 @@ sub getStatusData {
 	my $self = shift;
 	my ($infoHashref) = @_;
 	my ($sqlFetchJobStatus,$fetchJobStatusSth,$rowFetchStatus,$varHash, $varThreshold,$retStatusArr, $sqlFetchStatMsg, @whereClause, @fromTables,$finalWhereForLookup,$finalFromTableForLookup);
+	$finalFromTableForLookup = '';
+	$finalWhereForLookup = '';
 
 	push @fromTables, 'execdefs';
 	if(defined $infoHashref->{'run'}){
@@ -299,22 +303,37 @@ sub getStatusData {
 		push @whereClause , ' module.id = '.$infoHashref->{'module_id'}.' and execdefs.module_id = module.id ';
 		push @fromTables, 'module';
 	}
+	else{
+		print "\n No params given";
+	}
+	
+
 
 	foreach my $whereClause (@whereClause){
-		
+	
+		print "\n the where part: $whereClause";	
 		$finalWhereForLookup .= $whereClause.' and ';
 	}
 	$finalWhereForLookup = substr $finalWhereForLookup,0,-4;
+	if ($finalWhereForLookup ne ''){
+	
+		$finalWhereForLookup = $finalWhereForLookup.' and '
+	}
 
 	foreach my $fromTable (@fromTables){
+		print "\n the from part: $fromTable";	
 		if( $finalFromTableForLookup !~ /$fromTable/i){
 		$finalFromTableForLookup .= $fromTable.', ';
 		}	
 	}
-	$finalFromTableForLookup = substr $finalWhereForLookup,0,-2;
+	$finalFromTableForLookup = substr $finalFromTableForLookup,0,-2;
+	if ($finalFromTableForLookup ne ''){
+	
+		$finalFromTableForLookup = $finalFromTableForLookup.','
+	}
 
 	
-	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from$finalFromTableForLookup , qa_output out, qa_threshold threshold where $finalWhereForLookup and out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
+	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from $finalFromTableForLookup qa_output out, qa_threshold threshold where $finalWhereForLookup out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
 	print "\n The get QA LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
 	#$sqlFetchJobStatus = "select out.qavariables_id, threshold.intensity as status from qa_output out, qa_threshold threshold where out.job_dbid = $desJob_dbId and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value";
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchJobStatus) ;
@@ -325,7 +344,7 @@ sub getStatusData {
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
-	my $sqlFetchStatPatterns = 'select count(pattern_id) as count ,qaf_messages.pattern_id, q2.type as status  from '.$finalFromTableForLookup.', qaf_messages, qa_patterns q1, qa_patterns q2  where q1.type like \'%status%\' and q1.id = qaf_messages.pattern_id and q1.id=q2.id and q2.id= qaf_messages.pattern_id and '.$finalWhereForLookup.' group by qaf_messages.pattern_id, q2.type';
+	my $sqlFetchStatPatterns = 'select count(pattern_id) as count ,qaf_messages.pattern_id, q2.type as status  from '.$finalFromTableForLookup.' qaf_messages, qa_patterns q1, qa_patterns q2  where '.$finalWhereForLookup.' q1.type like \'%status%\' and q1.id = qaf_messages.pattern_id and q1.id=q2.id and q2.id= qaf_messages.pattern_id group by qaf_messages.pattern_id, q2.type';
 	print "\n The get STATUS LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
 	$fetchJobStatusSth->execute();
@@ -372,7 +391,7 @@ sub storeQAFMessage {
 	if(!defined $patternId) {
 	$patternId = 0;	
 	}
-	$sql = "insert into qaf_messages values ($execTableId,\'$line\',$patternId)";
+	$sql = "insert into qaf_messages values ($execTableId,\'$line\',$patternId,".$self->{_timestamp}.")";
 	$sqlSth = $self->{_desdbh}->prepare($sql) or print "Error in preparing $!";
         $sqlSth->execute() or print "\n\t ### error -> $! ###";#logError($!);
 }
