@@ -6,7 +6,7 @@ use warnings;
 use FileHandle;
 use QCFramework;
 use Getopt::Long;
-
+use Data::Dumper;
 my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath);
 
 $verbose = 0;
@@ -20,13 +20,14 @@ Getopt::Long::GetOptions(
 usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 
         my $patternHash;
-	print "\n ************** CALLING QCF in Controller with execDefsId $execDefsId";
+	print "\n ************** CALLING QCF in Controller with execDefsId $execDefsId ***************************";
 	
 	$infoHashref->{'desjob_dbid'} = $desjob_dbid;
 	$infoHashref->{'execdefs_id'} = $execDefsId;
 	$infoHashref->{'node'} = $node;
 	$infoHashref->{'verbose'} = $verbose;
 	$infoHashref->{'filepath'} = $fileList;
+
 
 	my $qaFramework = QCFramework->new($infoHashref);
 	### 
@@ -54,6 +55,8 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 			}
 		}
 	}
+	
+	print "\n QCF Controller has finished processing output. Exiting... \n ";
 
 sub usage {
 

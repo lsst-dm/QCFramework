@@ -132,8 +132,8 @@ sub extractDets {
 		# Get the name of the executable from the string pattern: Executing <executable name>.pl	
 		###
 		if($line =~ /Executing\s*(\/[\w|\/]*){1,}(\.pl)?(\s)?.*/){
-		#print "\n got the exec $1 $2 ";
-		$exec = $1.$2;	
+		$exec = $1.(defined $2 ? $2:'');	
+		#print "\n got the final $exec";
 		}
 	}
 
@@ -262,7 +262,7 @@ sub extractDets {
 	$desdbh->disconnect();
 
 #	print "\n the final execDefsId  for $sqlfinalExecDefsId is $finalExecDefs_id";
-	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 2";
+	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 1 > controllerout";
 	close($fileHandle);
 	print "\n ####### DONE #######";
 }

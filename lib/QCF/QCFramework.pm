@@ -50,7 +50,8 @@ sub new {
 	my ($class,$infoHashref) = @_;
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 	$self->{_desdbh} = DB::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
-	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-mi-ss')";
+	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-MI-SS')";
+
 	if(defined $infoHashref->{'execdefs_id'}){
 		$self->{_regexContainer} = RegexContainer->new($infoHashref) ;
 	}
@@ -77,8 +78,10 @@ sub extractQAData
 	my @runids;
 	my @timestamps;
 	my @nodes;
-
-	my $sqlInsert = "insert into qa_output (QAVARIABLES_ID,VALUE,TIMESTAMP,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,?,?,?,?,?)";
+	my $now_time;
+	# Thu Nov 10 11:04:30 2011
+	#my $sqlInsert = "insert into qa_output (QAVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
+	my $sqlInsert = "insert into qa_output (QAVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
 
         my $insertSth = $self->{_desdbh}->prepare($sqlInsert) or print "Error in preparing $!";
 	my $i;
@@ -95,7 +98,7 @@ sub extractQAData
 	if($filePath) {
 
 		$mode = "file";
-		if(defined $verbose >= 1){print "\n\n ##### Opening File $filePath  #####\n\n";}
+		if( $verbose >= 1){print "\n\n ##### Opening File $filePath  #####\n\n";}
 		open (FH, "$filePath") or die "Cannot open $filePath $!";
 	 	@lines=<FH>;
 	}
@@ -104,16 +107,17 @@ sub extractQAData
 		$mode = "buffer";
 		@lines = split("\n",$buffer);
 	}
-	if(defined $verbose >= 1){print "\n\n ##### Processing lines from $mode...  #####\n\n";}
+	if($verbose >= 1){print "\n\n ##### Processing lines from $mode...  #####\n\n";}
 
 	foreach my $line (@lines) {
 		chomp($line);
 		if( $verbose >= 2){print "\n\n Working on line $line\n\n";}
+		if( $verbose >= 2){print "\n\n the regexHash Object\n\n",Dumper($self->{_regexContainer}->{regex_hash});}
 		###foreach my $regexObj ($regexContainerObject->{regex_hash}) {
 		foreach my $regexObj ($self->{_regexContainer}->{regex_hash}) {
 			foreach my $regexHash (@$regexObj) { # Loop through the patterns
 				$regexPattern = $regexHash->{'pattern'};
-				if(defined $verbose >= 1){print "\n\n Current Pattern: $regexPattern\n\n";}
+				if( $verbose >= 1){print "\n\n Current Pattern: $regexPattern\n\n";}
 				$regexCompiled = qr/$regexPattern/sm;
 				##### match the regular expression #####
 				#### matched array matchedArr has the values extracted from the line above ####
@@ -127,7 +131,8 @@ sub extractQAData
 				undef @execTableIdArr;
 				undef @outputIdArr;
 				### Store the line that matched, in to the database ###
-				storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
+				#storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
+				storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'id'});
 				### do not continue with the variables if the exec_id is 0. since thats for status messages only
 				next if($regexHash->{'exec_id'} == 0); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
@@ -167,12 +172,14 @@ sub extractQAData
 						$insertSth->bind_param_array(1,\@variableIdArr);
 						#$insertSth->bind_param_array(1,11);
 						$insertSth->bind_param_array(2,\@extractedValue);
-						$insertSth->bind_param_array(3,$self->{_timestamp}); # NO ARRAY ONLY SCALAR
+						#$insertSth->bind_param_array(3,$self->{_timestamp_variables}); # NO ARRAY ONLY SCALAR
+						$insertSth->bind_param_array(3, strftime "%a %b %e %H:%M:%S %Y", localtime); # NO ARRAY ONLY SCALAR
 						$insertSth->bind_param_array(4,\@extraInfoArr);
 						$insertSth->bind_param_array(5,\@execTableIdArr);
 						$insertSth->bind_param_array(6,$outputId);
 						$insertSth->bind_param_array(7,$imageId);
 						$insertSth->execute_array({ArrayTupleStatus => \@tuple_status}) or print "\n ERROR IN INSERTING INTO OUPUT $!";
+						print "\n the errors for pattern: ",$regexHash->{'id'}," and EXED ID: ",$self->{_regexContainer}->{'exec_id'}," the final insert result is: ", Dumper(@tuple_status) if ($verbose >= 2);
 						$self->{_desdbh}->commit();
 					}
 				}
@@ -298,20 +305,27 @@ sub getStatusData {
 	} elsif(defined $infoHashref->{'desjob_dbid'}){
 	#if(defined $infoHashref->{'desjob_dbid'} && not defined $infoHashref->{'block_id'} && not defined $infoHashref->{'run'}){
 		push @whereClause , ' execdefs.desjob_dbid = '.$infoHashref->{'desjob_dbid'};
-		push @fromTables, 'desjob';
-	} elsif(defined $infoHashref->{'module'}){
+		#push @fromTables, 'desjob';
+	} elsif(defined $infoHashref->{'module_id'}){
 		push @whereClause , ' module.id = '.$infoHashref->{'module_id'}.' and execdefs.module_id = module.id ';
 		push @fromTables, 'module';
+	}
+	elsif(defined $infoHashref->{'execdefs_id'}){
+	
+		push @whereClause , ' execdefs.id = '.$infoHashref->{'execdefs_id'} ;
 	}
 	else{
 		print "\n No params given";
 	}
 	
 
+	###
+	# Loop through the arrays containing all the needed FROM tables and Where conditions. Add an 'and' in the end 
+	# for Where conditions and a comma ',' for FROM tables string
+	###
 
 	foreach my $whereClause (@whereClause){
 	
-		print "\n the where part: $whereClause";	
 		$finalWhereForLookup .= $whereClause.' and ';
 	}
 	$finalWhereForLookup = substr $finalWhereForLookup,0,-4;
@@ -321,7 +335,6 @@ sub getStatusData {
 	}
 
 	foreach my $fromTable (@fromTables){
-		print "\n the from part: $fromTable";	
 		if( $finalFromTableForLookup !~ /$fromTable/i){
 		$finalFromTableForLookup .= $fromTable.', ';
 		}	
@@ -344,8 +357,8 @@ sub getStatusData {
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
-	my $sqlFetchStatPatterns = 'select count(pattern_id) as count ,qaf_messages.pattern_id, q2.type as status  from '.$finalFromTableForLookup.' qaf_messages, qa_patterns q1, qa_patterns q2  where '.$finalWhereForLookup.' q1.type like \'%status%\' and q1.id = qaf_messages.pattern_id and q1.id=q2.id and q2.id= qaf_messages.pattern_id group by qaf_messages.pattern_id, q2.type';
-	print "\n The get STATUS LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
+	my $sqlFetchStatPatterns = 'select count(qaf_messages.pattern_id) as count ,qaf_messages.pattern_id, qa_patterns.type as status from '.$finalFromTableForLookup.' qaf_messages, qa_patterns where '.$finalWhereForLookup.' qa_patterns.type like \'%status%\' and qa_patterns.id = qaf_messages.pattern_id and execdefs.id = qaf_messages.execdefs_id  group by qaf_messages.pattern_id, qa_patterns.type';
+	print "\n The get STATUS LEVEL query: $sqlFetchStatPatterns " if($verbose >=2);
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
 	$fetchJobStatusSth->execute();
 	while(my $rowFetchStatusRows = $fetchJobStatusSth->fetchrow_hashref()){

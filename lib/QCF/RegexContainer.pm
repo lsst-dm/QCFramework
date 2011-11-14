@@ -41,7 +41,9 @@ sub new{
 	my ($class,$infoHashref) = @_;
 	my $self;
 	my $execDefsDetails;
+	if (defined $infoHashref->{'verbose'}){
 	$verbose = $infoHashref->{'verbose'};
+	}
 	$self->{_desdbh} = DB::DESUtil->new(	DBIattr => {   AutoCommit => 0,     RaiseError => 1,   PrintError => 0	}) or print "\n #### THE ERROR in connecting to db $! ";
 ## use the execdefs_id given in the qcf controller param list to get the details about which exec,module,job were used for this qa log file 
 	$execDefsDetails = getExecDefDets($self->{_desdbh},$infoHashref->{'execdefs_id'}); 
