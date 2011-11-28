@@ -38,7 +38,7 @@ my @files;
 	$infoHashref->{'verbose'} = $verbose;
 	$infoHashref->{'filepath'} = $fileList;
 
-#	my $qaFramework = QCFramework->new($infoHashref);
+#	my $qcFramework = QCFramework->new($infoHashref);
 	### 
 	# Open the file containing a list of all the files to be read.
 	###
@@ -156,44 +156,55 @@ sub extractDets {
 	$rethash->{'desjob'} = $desjob;
 	$rethash->{'block'} = $block;
 
-	# module: id, desjobid, blockid
-	# execdefs: id, moduleid, desjobid, execid	
-	# desjob: id, blockid
-	#my $dsn = "DBI:Oracle:host=141.142.226.50;sid=desoper_4";
-	#my $pw = 'ank70chips';
-	#my $user = 'ankitc';
-	my $dsn = "DBI:Oracle:host=desdb.cosmology.illinois.edu;sid=des";
-	my $user = 'des_admin';
-	my $pw = 'deSadM1005';
-	my $row;
-	my $desdb_dbh = DBI->connect($dsn, $user, $pw);	
-	my $sth;
-	my $sql = "select run.id, block.block_id, block.run_id from block, run where block.run_id = run.id and run.run = \'$run\' and block_name = \'$block\'";
-	$sth = $desdb_dbh->prepare($sql);
-	$sth->execute();
-	$row = $sth->fetchrow_hashref();
-	#print "\n SELECT  for $sql",Dumper($row);
-	my $block_id = $row->{'BLOCK_ID'};
-	$sth->finish();
-	$desdb_dbh->disconnect();
-
 	#
 	# Make a database connection
 	#
 
 	my $desdbh = DB::DESUtil->new();
 
-	my $desjob_id = getnextId('desjob',$desdbh);
+	# module: id, desjobid, blockid
+	# execdefs: id, moduleid, desjobid, execid	
+	# desjob: id, blockid
+	#my $dsn = "DBI:Oracle:host=141.142.226.50;sid=desoper_4";
+	#my $pw = 'ank70chips';
+	#my $user = 'ankitc';
+	#my $dsn = "DBI:Oracle:host=desdb.cosmology.illinois.edu;sid=des";
+	#my $user = 'des_admin';
+	#my $pw = 'deSadM1005';
+
+	my $row;
+	#my $desdb_dbh = DBI->connect($dsn, $user, $pw);	
+	my $sth;
+	my $sql = "select run.id, block.block_id, block.run_id from block, run where block.run_id = run.id and run.run = \'$run\' and block_name = \'$block\'";
+	print "\n the sql is $sql";
+	#$sth = $desdb_dbh->prepare($sql);
+	$sth = $desdbh->prepare($sql);
+	$sth->execute();
+	$row = $sth->fetchrow_hashref();
+	#print "\n SELECT  for $sql",Dumper($row);
+	my $block_id = $row->{'block_id'};
+	$sth->finish();
+
+	print "\n th block $block_id", Dumper($row);
+	if(not defined $block_id){
+	
+	$desdbh->disconnect();
+	die("Block ID not found.\nCheck whether the log file $logfilepath is actually registered in the new database");
+
+	}
+	
+
+	my $desjob_id = getnextId('PFW_JOB',$desdbh);
 
 	### insert the row into the temp table
 	#my $sqlInsertTempDesjob = "insert into desjob (id,name,block_id) values ($desjob_id, $desjob,$block_id)";
-	my $sqlInsertTempDesjob = " MERGE INTO desjob USING (SELECT $desjob_id ID, \'$desjob\' NAME ,$block_id block_id  FROM dual) S ON (desjob.name = S.name and desjob.block_id = S.block_id) WHEN NOT MATCHED THEN INSERT (ID, name, block_id) VALUES (S.ID, S.name, S.block_id)";
+	my $sqlInsertTempDesjob = " MERGE INTO PFW_JOB USING (SELECT $desjob_id ID, \'$desjob\' NAME ,$block_id block_id  FROM dual) S ON (PFW_JOB.name = S.name and PFW_JOB.block_id = S.block_id) WHEN NOT MATCHED THEN INSERT (ID, name, block_id) VALUES (S.ID, S.name, S.block_id)";
 	#print "\n the values to insert into desjob sql $sqlInsertTempDesjob : $desjob, $block_id";
 	$sth = $desdbh->prepare($sqlInsertTempDesjob);
-	$sth->execute() or print "\n err creating temp desjob table";
+	$sth->execute() or print "\n err creating temp PFW_JOB table";
 	$sth->finish();
 
-	my $sqlfinalDesjobId = "select id from desjob where name = \'$desjob\' and block_id = $block_id ";
+	my $sqlfinalDesjobId = "select id from PFW_JOB where name = \'$desjob\' and block_id = $block_id ";
 	#print "\n sqlfinaldesjobid $sqlfinalDesjobId";
 	my $finalDesjob_id;
 	$sth = $desdbh->prepare($sqlfinalDesjobId);
@@ -204,18 +215,18 @@ sub extractDets {
 	}
 
 
-	my $module_id = getnextId('module',$desdbh);
+	my $module_id = getnextId('pfw_module',$desdbh);
 	my $module_name;
 	### create the temp table for module to use in merge
         #my $sqlInsertTempModule = "insert into module (id,desjob_id,block_id) values ($module_id, $desjob_id,$block_id)";
-	my $sqlInsertTempModule = " MERGE INTO module USING (SELECT $module_id ID, $finalDesjob_id desjob_id ,$block_id block_id, \'$module\' name FROM dual) S ON (module.name = S.name and module.desjob_id = S.desjob_id) WHEN NOT MATCHED THEN INSERT (ID, desjob_id, block_id,name) VALUES (S.ID, S.desjob_id, S.block_id,S.name)";
+	my $sqlInsertTempModule = " MERGE INTO pfw_module USING (SELECT $module_id ID, $finalDesjob_id PFW_JOB_id ,$block_id block_id, \'$module\' name FROM dual) S ON (pfw_module.name = S.name and pfw_module.PFW_JOB_id = S.PFW_JOB_id) WHEN NOT MATCHED THEN INSERT (ID, PFW_JOB_id, block_id,name) VALUES (S.ID, S.PFW_JOB_id, S.block_id,S.name)";
         #print "\n the values to insert into module sql $sqlInsertTempModule : $desjob_id, $block_id";
         $sth = $desdbh->prepare($sqlInsertTempModule);
-        $sth->execute() or print "\n err creating temp desjob table";
+        $sth->execute() or print "\n err creating temp PFW_JOB table";
 	$sth->finish();
 
 
-	my $sqlfinalModuleId = "select id from module where name = \'$module\' and desjob_id = $finalDesjob_id ";
+	my $sqlfinalModuleId = "select id from pfw_module where name = \'$module\' and PFW_JOB_id = $finalDesjob_id ";
 	my $finalModule_id;
 	$sth = $desdbh->prepare($sqlfinalModuleId);
 	$sth->execute() or print "\n err querying the latest exec id";
@@ -224,14 +235,14 @@ sub extractDets {
 	}
 
 
-	my $exec_id = getnextId('exec',$desdbh);
-	my $sqlMergeExec = " MERGE INTO exec USING (SELECT $exec_id ID, \'$exec\' name, \'$exec\' path FROM dual) S ON (exec.path = S.path) WHEN NOT MATCHED THEN INSERT (ID, name, path) VALUES (S.ID, S.name, S.path)";
+	my $exec_id = getnextId('pfw_executable',$desdbh);
+	my $sqlMergeExec = " MERGE INTO pfw_executable USING (SELECT $exec_id ID, \'$exec\' name, \'$exec\' path FROM dual) S ON (pfw_executable.path = S.path) WHEN NOT MATCHED THEN INSERT (ID, name, path) VALUES (S.ID, S.name, S.path)";
 	#print "\n the exec merge query, $sqlMergeExec";
 	$sth = $desdbh->prepare($sqlMergeExec);
 	$sth->execute() or print "\n err querying the merge query";
 	$sth->finish();
 
-	my $sqlfinalExecId = "select id from exec where path like \'%$exec%\'";
+	my $sqlfinalExecId = "select id from pfw_executable where path like \'%$exec%\'";
 	$sth = $desdbh->prepare($sqlfinalExecId);
 	$sth->execute() or print "\n err querying the latest exec id";
 	while(my $row_fetchExecId = $sth->fetchrow_hashref()){
@@ -241,15 +252,15 @@ sub extractDets {
 	$sth->finish();
 	#print "\n the values to insert into  exec sql $sqlInsert: $exec, $exec_id";	
 
-	my $execdefs_id = getnextId('execdefs',$desdbh);
-	my $sqlInsert = " MERGE INTO execdefs USING (SELECT $execdefs_id id,$exec_id exec_id , $finalModule_id module_id, $finalDesjob_id desjob_dbid FROM dual) S ON (execdefs.exec_id = S.exec_id and execdefs.module_id = S.module_id and execdefs.desjob_dbid = S.desjob_dbid) WHEN NOT MATCHED THEN INSERT (ID, exec_id, module_id,  desjob_dbid) VALUES (S.ID, S.exec_id, S.module_id, S.desjob_dbid)";
+	my $execdefs_id = getnextId('pfw_executable_def',$desdbh);
+	my $sqlInsert = " MERGE INTO pfw_executable_def USING (SELECT $execdefs_id id,$exec_id pfw_executable_id , $finalModule_id pfw_module_id, $finalDesjob_id PFW_JOB_id FROM dual) S ON (pfw_executable_def.pfw_executable_id = S.pfw_executable_id and pfw_executable_def.pfw_module_id = S.pfw_module_id and pfw_executable_def.PFW_JOB_id = S.PFW_JOB_id) WHEN NOT MATCHED THEN INSERT (ID, pfw_executable_id, pfw_module_id,  PFW_JOB_id) VALUES (S.ID, S.pfw_executable_id, S.pfw_module_id, S.PFW_JOB_id)";
 	#my $sqlInsert = "insert into execdefs (id,exec_id,module_id, desjob_dbid) values ($execdefs_id,$exec_id, $module_id, $block_id)";
 	#print "\n the values to insert into  execdefs sql $sqlInsert: $exec_id, $module_id, $block_id, $execdefs_id";	
 	$sth = $desdbh->prepare($sqlInsert);
 	$sth->execute() or print "\n err inserting into execdefs";
 	$sth->finish();
 
-	my $sqlfinalExecDefsId = "select id from execdefs where desjob_dbid = $finalDesjob_id and exec_id = $exec_id and module_id = $finalModule_id ";
+	my $sqlfinalExecDefsId = "select id from pfw_executable_def where PFW_JOB_id = $finalDesjob_id and pfw_executable_id = $exec_id and pfw_module_id = $finalModule_id ";
 	$sth = $desdbh->prepare($sqlfinalExecDefsId);
 	$sth->execute() or print "\n err querying the latest exec id";
 	my $finalExecDefs_id;	
@@ -261,8 +272,8 @@ sub extractDets {
 	$desdbh->commit();
 	$desdbh->disconnect();
 
-#	print "\n the final execDefsId  for $sqlfinalExecDefsId is $finalExecDefs_id";
-	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 1 > controllerout";
+	print "\n the final execDefsId of filepath $filepath  for $sqlfinalExecDefsId is $finalExecDefs_id";
+	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 2 > controllerout";
 	close($fileHandle);
 	print "\n ####### DONE #######";
 }
@@ -277,7 +288,7 @@ sub getnextId {
 	#
 
   my $outputId = 0;
-  my $sql = " SELECT ".$table."_id.nextval FROM dual";
+  my $sql = " SELECT ".$table."_seq.nextval FROM dual";
 
   my $sth=$desdbh->prepare($sql);
   $sth->execute();

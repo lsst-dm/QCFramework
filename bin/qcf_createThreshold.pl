@@ -28,12 +28,12 @@ if (length($mon) == 1){
 	#$mon = "0".$mon;
 }
 ######################### PATTERN CONFIG #######################
-my $patternId = getnextId('qa_threshold',$desdbh);
+my $patternId = getnextId('qc_threshold',$desdbh);
 $patternHash->{'id'} = $patternId;
-$patternHash->{'pattern'} = "'STATUS2BEG\s*Image\s*(\/.*\.\w+)\s*\:\s*band\=(\w?)\s*ZP\=\s*(\d+\.?\d+)\s*STATUS2END'";
+#$patternHash->{'pattern'} = "'STATUS2BEG\s*Image\s*(\/.*\.\w+)\s*\:\s*band\=(\w?)\s*ZP\=\s*(\d+\.?\d+)\s*STATUS2END'";
 $patternHash->{'valid'} = "'y'";
 $patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$patternHash->{'type'} = "'qa'";
+$patternHash->{'type'} = "'qc'";
 $patternHash->{'exec_id'} = 0;
 
 
@@ -41,7 +41,7 @@ $patternHash->{'exec_id'} = 0;
 
 ######################### VARIABLE CONFIG #######################
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
 $variableHash->{'name'} = "'Image'";
 $variableHash->{'pretty_name'} = "'Image'";
 $variableHash->{'pattern_id'} = $patternId;
@@ -53,7 +53,7 @@ $variableHash->{'action_code'} = 1;
 push @allVars, $variableHash;
 
 undef $variableHash;
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
 $variableHash->{'name'} = "'Band'";
 $variableHash->{'pretty_name'} = "'Coadd Catalog Band'";
 $variableHash->{'pattern_id'} = $patternId;
@@ -65,7 +65,7 @@ $variableHash->{'action_code'} = 0;
 push @allVars, $variableHash;
 undef $variableHash;
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
 $variableHash->{'name'} = "'ZP'";
 $variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
 $variableHash->{'pattern_id'} = $patternId;
@@ -80,10 +80,10 @@ push @allVars, $variableHash;
 ######################### VARIABLE CONFIG #######################
 
 
-my $sqlPattern = 'insert into qa_patterns values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
+my $sqlPattern = 'insert into qc_pattern values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
 	print "\n the sql variable $sqlPattern ";
 my $sthPattern = $desdbh->prepare($sqlPattern);
-$sthPattern->execute() or print 'cannot insert into qa_patterns';
+$sthPattern->execute() or print 'cannot insert into qc_pattern';
 $desdbh->commit();
 
 print "\n the array ",Dumper(@allVars);
@@ -91,16 +91,16 @@ print "\n the array ",Dumper(@allVars);
 
 if(scalar @allVars > 0)
 {
-	my $sqlVariables;# = 'insert into qa_variables values ';
+	my $sqlVariables;# = 'insert into qc_variable values ';
 	my $sthVariables; # = $desdbh->prepare($sqlVariables);
 
 	foreach my $varHashTemp (@allVars){
 
-	$sqlVariables = ' insert into qa_variables values  ('.$varHashTemp->{'id'}.','.$varHashTemp->{'name'}.','.$varHashTemp->{'pretty_name'}.','.$varHashTemp->{'pattern_id'}.','.$varHashTemp->{'pattern_location'}.','.$varHashTemp->{'valid'}.','.$varHashTemp->{'timestamp'}.','.$varHashTemp->{'action_code'}.') ';
+	$sqlVariables = ' insert into qc_variable values  ('.$varHashTemp->{'id'}.','.$varHashTemp->{'name'}.','.$varHashTemp->{'pretty_name'}.','.$varHashTemp->{'pattern_id'}.','.$varHashTemp->{'pattern_location'}.','.$varHashTemp->{'valid'}.','.$varHashTemp->{'timestamp'}.','.$varHashTemp->{'action_code'}.') ';
 
 	print "\n\n the sql variable $sqlVariables ",Dumper($varHashTemp);
 	$sthVariables = $desdbh->prepare($sqlVariables);
-	$sthVariables->execute() or print "cannot insert into qavariables";
+	$sthVariables->execute() or print "cannot insert into qcvariables";
 	$desdbh->commit();
 
 	}

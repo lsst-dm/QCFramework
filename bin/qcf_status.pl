@@ -37,11 +37,11 @@ use QCFramework;
 	$infoHashref->{'module_id'} = $module_id;
 	$infoHashref->{'execdefs_id'} = $execdefs_id;
 
-	my $qaFramework = QCFramework->new($infoHashref);
+	my $qcFramework = QCFramework->new($infoHashref);
 
 	#print "\n ### $desjob_dbid";
-	#my $statusHashRef = $qaFramework->getQAStatus($infoHashref);
-	my $statusHashRef = $qaFramework->getStatusData($infoHashref);
+	#my $statusHashRef = $qcFramework->getQCStatus($infoHashref);
+	my $statusHashRef = $qcFramework->getStatusData($infoHashref);
 	print "\n the statusHashRef: ", Dumper($statusHashRef);
 
 	

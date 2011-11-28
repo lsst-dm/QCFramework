@@ -28,44 +28,47 @@ if (length($mon) == 1){
 	#$mon = "0".$mon;
 }
 ######################### PATTERN CONFIG #######################
-my $patternId = getnextId('qa_patterns',$desdbh);
+#my $patternId = getnextId('qc_pattern',$desdbh);
+#$patternHash->{'id'} = $patternId;
+#$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
+#$patternHash->{'pattern'} = "'STATUS1BEG(.*)STATUS1END'";
+#$patternHash->{'valid'} = "'y'";
+#$patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
+#$patternHash->{'type'} = "'status1'";
+#$patternHash->{'exec_id'} = 0;
+
+#
+#
+my $patternId = getnextId('qc_pattern',$desdbh);
 $patternHash->{'id'} = $patternId;
-$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
+##$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
+$patternHash->{'pattern'} = "'DETSECA\\s*=.*\\[(\\d*):(\\d*),(\\d*):(\\d*)\\].*'";
 $patternHash->{'valid'} = "'y'";
 $patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$patternHash->{'type'} = "'qa'";
+$patternHash->{'type'} = "'qc'";
 $patternHash->{'exec_id'} = 0;
-
-
+#
 # 32,40:s/\n/\r#/gc use this template to comment out all the lines with variables in them. replace 32,40 with start and end line numbers between which the comments are to be introduced.
 
 ######################### VARIABLE CONFIG #######################
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'Image'";
-$variableHash->{'pretty_name'} = "'Image'";
-$variableHash->{'pattern_id'} = $patternId;
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
+$variableHash->{'name'} = "'DATASEC '";
+$variableHash->{'pretty_name'} = "'data sec q'";
 $variableHash->{'pattern_location'} = 1;
+$variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'valid'} = "'y'";
 $variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$variableHash->{'action_code'} = 1;
-
-#$thresholdHash->{'id'} = $variableHash->{'id'} ;
-#$thresholdHash->{'min_value'} = 24;
-#$thresholdHash->{'max_value'} = 32;
-#$thresholdHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-#$thresholdHash->{'valid'} = "'y'";
-#$thresholdHash->{'intensity'} = 4;
-#$thresholdHash->{'type'} = '';
+$variableHash->{'action_code'} = 0;
 
 push @allVars, $variableHash;
 
 undef $variableHash;
 
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'Band'";
-$variableHash->{'pretty_name'} = "'Coadd Catalog Band'";
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
+$variableHash->{'name'} = "'DATASEC 2'";
+$variableHash->{'pretty_name'} = "'datasec 2 '";
 $variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'pattern_location'} = 2;
 $variableHash->{'valid'} = "'y'";
@@ -75,17 +78,17 @@ $variableHash->{'action_code'} = 0;
 push @allVars, $variableHash;
 undef $variableHash;
 
-$variableHash->{'id'} = getnextId('qa_variables',$desdbh);
-$variableHash->{'name'} = "'ZP'";
-$variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
-$variableHash->{'pattern_id'} = $patternId;
-$variableHash->{'pattern_location'} = 3;
-$variableHash->{'valid'} = "'y'";
-$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-$variableHash->{'action_code'} = 0;
+#$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
+#$variableHash->{'name'} = "'ZP'";
+#$variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
+#$variableHash->{'pattern_id'} = $patternId;
+#$variableHash->{'pattern_location'} = 3;
+#$variableHash->{'valid'} = "'y'";
+#$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
+#$variableHash->{'action_code'} = 0;
+####
 
-
-push @allVars, $variableHash;
+#push @allVars, $variableHash;
 
 ######################### VARIABLE CONFIG #######################
 
@@ -100,30 +103,27 @@ $desdbh->disconnect();
 die("\n\n exiting the program...");
 }
 
-
-
-
-my $sqlPattern = 'insert into qa_patterns values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
+my $sqlPattern = 'insert into qc_pattern (id,pattern,valid,timestamp,type,pfw_executable_id) values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
 	print "\n the sql variable $sqlPattern ";
 my $sthPattern = $desdbh->prepare($sqlPattern);
-$sthPattern->execute() or print 'cannot insert into qa_patterns';
+$sthPattern->execute() or print 'cannot insert into qc_pattern';
 $desdbh->commit();
 
-print "\n the array ",Dumper(@allVars);
 
 
 if(scalar @allVars > 0)
 {
-	my $sqlVariables;# = 'insert into qa_variables values ';
+	print "\n the array ",Dumper(@allVars);
+	my $sqlVariables;# = 'insert into qc_variable values ';
 	my $sthVariables; # = $desdbh->prepare($sqlVariables);
 
 	foreach my $varHashTemp (@allVars){
 
-	$sqlVariables = ' insert into qa_variables values  ('.$varHashTemp->{'id'}.','.$varHashTemp->{'name'}.','.$varHashTemp->{'pretty_name'}.','.$varHashTemp->{'pattern_id'}.','.$varHashTemp->{'pattern_location'}.','.$varHashTemp->{'valid'}.','.$varHashTemp->{'timestamp'}.','.$varHashTemp->{'action_code'}.') ';
+	$sqlVariables = ' insert into qc_variable values  ('.$varHashTemp->{'id'}.','.$varHashTemp->{'name'}.','.$varHashTemp->{'pretty_name'}.','.$varHashTemp->{'pattern_id'}.','.$varHashTemp->{'pattern_location'}.','.$varHashTemp->{'valid'}.','.$varHashTemp->{'timestamp'}.','.$varHashTemp->{'action_code'}.') ';
 
 	print "\n\n the sql variable $sqlVariables ",Dumper($varHashTemp);
 	$sthVariables = $desdbh->prepare($sqlVariables);
-	$sthVariables->execute() or print "cannot insert into qavariables";
+	$sthVariables->execute() or print "cannot insert into qcvariables";
 	$desdbh->commit();
 
 	}
@@ -141,7 +141,7 @@ sub getnextId {
         #
 
   my $outputId = 0;
-  my $sql = " SELECT ".$table."_id.nextval FROM dual";
+  my $sql = " SELECT ".$table."_seq.nextval FROM dual";
 
   my $sth=$desdbh->prepare($sql);
   $sth->execute();

@@ -29,7 +29,7 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 	$infoHashref->{'filepath'} = $fileList;
 
 
-	my $qaFramework = QCFramework->new($infoHashref);
+	my $qcFramework = QCFramework->new($infoHashref);
 	### 
 	# Open the file containing a list of all the files to be read.
 	###
@@ -41,7 +41,7 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 		foreach $line (@lines) {
 			chomp($line);
 			#print "\n\n ----------- $line ---------";
-			$qaFramework->extractQAData($line,$stdinBuffer,$infoHashref);
+			$qcFramework->extractQCData($line,$stdinBuffer,$infoHashref);
 		}
 	}
 	else
@@ -51,7 +51,7 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 			chomp($stdinBuffer);
 			if(length($stdinBuffer) > 0){
 			#print "\n\n\n #### ANKIT CHANDRA---->",$stdinBuffer,"<---------- ANKIT CHANDRA";
-			$qaFramework->extractQAData($line,$stdinBuffer,$infoHashref);
+			$qcFramework->extractQCData($line,$stdinBuffer,$infoHashref);
 			}
 		}
 	}

@@ -55,10 +55,10 @@ my $result = $parser->parse(%parser_args);
 	#$infoHashref->{'desjob_id'} = $desjob_id;
 	#$infoHashref->{'verbose'} = $verbose;
 
-	#my $qaFramework = QCFramework->new($infoHashref);
+	#my $qcFramework = QCFramework->new($infoHashref);
 
 	#print "\n ### $desjob_dbid";
-	#my $statusHashRef = $qaFramework->getQAInfo($infoHashref);
+	#my $statusHashRef = $qcFramework->getQCInfo($infoHashref);
 	#print "\n the statusHashRef: ", Dumper($statusHashRef);
 	
 sub usage {
@@ -267,15 +267,15 @@ sub end_element {
 				
 				switch($currTable){
 				
-				case 'QA_OUTPUT'{
+				case 'QC_OUTPUT'{
 				}	
-				case 'QAF_MESSAGES'{
+				case 'QCF_MESSAGES'{
 				}	
-				case 'QA_THRESHOLD'{
+				case 'QC_THRESHOLD'{
 				}	
-				case 'QA_VARIABLES'{
+				case 'QC_VARIABLES'{
 				}	
-				case 'QA_PATTERNS'{
+				case 'QC_PATTERNS'{
 				}	
 				case ''{
 				}	
@@ -285,7 +285,7 @@ sub end_element {
                         case 'WHERE'
                         {
 				if(scalar @statusArr > 0){
-				$sqlWhereStatus = " qa_threshold.intensity in (";
+				$sqlWhereStatus = " qc_threshold.intensity in (";
 
 				foreach (@statusArr){
 					$sqlWhereStatus .= $_.", ";	
@@ -294,9 +294,9 @@ sub end_element {
 				$sqlWhereStatus = substr $sqlWhereStatus,0,-2;
 				$sqlWhereStatus .= " )";
 
-				$sqlWhereStatus .= " and qa_threshold.qavariables_id = qa_output.qavariables_id ";
+				$sqlWhereStatus .= " and qc_threshold.qcvariables_id = qc_output.qcvariables_id ";
 				push @allSqlComponents, $sqlWhereStatus;
-				push @allTablesNeeded, 'QA_THRESHOLD';
+				push @allTablesNeeded, 'QC_THRESHOLD';
 				}
 
 				
@@ -311,10 +311,10 @@ sub end_element {
 				$sqlWhereDesjobid = substr $sqlWhereDesjobid,0,-2;
 				$sqlWhereDesjobid .= " )";
 
-				$sqlWhereDesjobid .= " and execdefs.id = qa_output.execdefs_id";
+				$sqlWhereDesjobid .= " and execdefs.id = qc_output.execdefs_id";
 				push @allSqlComponents, $sqlWhereDesjobid;
 				push @allTablesNeeded, 'EXECDEFS';
-				push @allTablesNeeded, 'QA_OUTPUT';
+				push @allTablesNeeded, 'QC_OUTPUT';
 
 				}
 			
@@ -328,7 +328,7 @@ sub end_element {
                                 $sqlWhereRun = substr $sqlWhereRun,0,-2;
                                 $sqlWhereRun .= " )";
 
-                                $sqlWhereRun .= " and desjob.block_id = block.id and execdefs.desjob_id = desjob.id and execdefs.id = qa_output.execdefs_id and qaf_messages.pattern_id = qa_variables.id and qa_output.qavariables_id = qa_variables.id";
+                                $sqlWhereRun .= " and desjob.block_id = block.id and execdefs.desjob_id = desjob.id and execdefs.id = qc_output.execdefs_id and qcf_messages.pattern_id = qc_variable.id and qc_output.qcvariables_id = qc_variable.id";
 				push @allSqlComponents, $sqlWhereRun;
 				push @allTablesNeeded, 'BLOCK';
                                 } 
