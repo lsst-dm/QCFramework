@@ -45,12 +45,12 @@ sub new{
 	$verbose = $infoHashref->{'verbose'};
 	}
 	$self->{_desdbh} = DB::DESUtil->new(	DBIattr => {   AutoCommit => 0,     RaiseError => 1,   PrintError => 0	}) or print "\n #### THE ERROR in connecting to db $! ";
-## use the execdefs_id given in the qcf controller param list to get the details about which exec,module,job were used for this qa log file 
+## use the execdefs_id given in the qcf controller param list to get the details about which exec,module,job were used for this qc log file 
 	$execDefsDetails = getExecDefDets($self->{_desdbh},$infoHashref->{'execdefs_id'}); 
 	$self->{execdefs_id} = $infoHashref->{'execdefs_id'};
-	$self->{exec_id} = $execDefsDetails->{'exec_id'};
-	$self->{module_id} = $execDefsDetails->{'module_id'};
-	$self->{desjob_id} = $execDefsDetails->{'desjob_id'};
+	$self->{exec_id} = $execDefsDetails->{'pfw_executable_id'};
+	$self->{module_id} = $execDefsDetails->{'pfw_module_id'};
+	$self->{desjob_id} = $execDefsDetails->{'pfw_job_id'};
 	$self->{id} = $execDefsDetails->{'id'};
 	$self->{count} = $execDefsDetails->{'count'};
         $self->{regex_hash} = getRegexHash($self, $self->{exec_id});
@@ -67,7 +67,8 @@ sub getExecDefDets {
 	
 	my ($desdbh,$execDefsId) = @_;
 	
-	my $sql = "select * from execdefs where id = $execDefsId";
+	my $sql = "select * from pfw_executable_def where id = $execDefsId";
+	print "\n the sql to get executable information is $sql " if($verbose >= 2);
 	my $sth = $desdbh->prepare($sql);
 	$sth->execute();
 	return $sth->fetchrow_hashref();
@@ -87,9 +88,9 @@ sub getRegexHash {
 	my $variablesDBHashRef;
 	my $imageIdHashRef;
 	# Get the qc framework variables first.
-	my $variablesSql = qq{select * from QA_VARIABLES  where valid = 'y' order by PATTERN_LOCATION};
+	my $variablesSql = qq{select * from QC_VARIABLE  where valid = 'y' order by PATTERN_LOCATION};
 	my $variablesSth = $self->{_desdbh}->prepare($variablesSql) or print "Error in preparing $!";
-	$variablesSth->execute() or print "\n #### ERROR FETCHING QA PATTERNS: $!";
+	$variablesSth->execute() or print "\n #### ERROR FETCHING QC PATTERNS: $!";
 
 	while($variablesDBHashRef = $variablesSth->fetchrow_hashref()){
 
@@ -116,13 +117,16 @@ sub getRegexHash {
 	}
 	
 	#### Get all the valid patterns for the exec(utable), whose output is being parsed for the QC information. This exec id is linked to the exec table, which contains a list of all the executables in the system
-	my $patternSql = qq{select * from QA_PATTERNS  where valid = 'y' and exec_id in( $exec_id,0)  };
+	my $patternSql = qq{select * from QC_PATTERN  where valid = 'y' and pfw_executable_id in( $exec_id,0)  };
 	print "\n the query to get patterns: $patternSql" if ($verbose >= 2);
 	my $patternSth = $self->{_desdbh}->prepare($patternSql) or print "Error in preparing $!";
 	$patternSth->execute();
 
 	while($patternDBHashRef = $patternSth->fetchrow_hashref()){
-		#$patternDBHashRef->{'pattern'} =~ s/\\\\/\\/;
+
+		###
+		# insert the hashref containing all the variables associated with the pattern, into the patternhashref. Now we have a patternhashref with all the information about the pattern from qc_pattern and qc_variable tables
+		###
 		$patternDBHashRef->{'variables'} = $variablesHash->{$patternDBHashRef->{'id'}};
 		push@{$patternHash}, $patternDBHashRef;
 	}

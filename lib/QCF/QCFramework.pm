@@ -57,12 +57,12 @@ sub new {
 	}
 	$verbose = $infoHashref->{'verbose'} if defined $infoHashref->{'verbose'};
         bless($self);           # but see below
-	#$sql = "select * from qa_patterns";
+	#$sql = "select * from qc_pattern";
         return $self;
     }
 
 
-sub extractQAData
+sub extractQCData
 {
 	my ($self,$filePath,$buffer,$infoHashref) = @_;
 	my ($fileHandle, $mode);
@@ -80,8 +80,8 @@ sub extractQAData
 	my @nodes;
 	my $now_time;
 	# Thu Nov 10 11:04:30 2011
-	#my $sqlInsert = "insert into qa_output (QAVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
-	my $sqlInsert = "insert into qa_output (QAVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
+	#my $sqlInsert = "insert into qc_output (QCVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
+	my $sqlInsert = "insert into qc_output (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_EXECUTABLE_DEF_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
 
         my $insertSth = $self->{_desdbh}->prepare($sqlInsert) or print "Error in preparing $!";
 	my $i;
@@ -90,7 +90,7 @@ sub extractQAData
 	my (@variableIdArr, @extractedValue, @extraInfoArr, @execTableIdArr, @outputIdArr,@tuple_status);
 	my $imageId;
 	###if(defined $verbose){print "\n\n \t PATTERNS OBJECT FROM DB: \n\n \t"; print Dumper($regexContainerObject);}
-	if( $verbose >= 2){print "\n\n \t In SubRoutine extractQAData: PATTERNS OBJECT FROM DB: \n\n \t"; print Dumper($self->{_regexContainer});}
+	if( $verbose >= 2){print "\n\n \t In SubRoutine extractQCData: PATTERNS OBJECT FROM DB: \n\n \t"; print Dumper($self->{_regexContainer});}
 
 	### 
 	# If there is a filepath given to the function, then use that to open the file and read the data. 
@@ -122,7 +122,10 @@ sub extractQAData
 				##### match the regular expression #####
 				#### matched array matchedArr has the values extracted from the line above ####
 				@matchedArr = ($line =~ $regexCompiled);
-				# 3rd argument is what is 
+	####
+	## The following IF condition is important. It confirms that the pattern matched in the above regular expression actually belongs to the executable tied to the pfw_executable_def_id provided to the qcf_controller. This ensures that the QCFramework is working on the correct pattern for the executable ID provided. This is important because there could be more than one executables with same patterns.  
+	####
+ 
 				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'exec_id'})) {
 			
 				undef @variableIdArr;
@@ -131,10 +134,10 @@ sub extractQAData
 				undef @execTableIdArr;
 				undef @outputIdArr;
 				### Store the line that matched, in to the database ###
-				#storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
-				storeQAFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'id'});
+				#storeQCFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
+				storeQCFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'id'}) if($regexHash->{'pfw_executable_id'} == 0);
 				### do not continue with the variables if the exec_id is 0. since thats for status messages only
-				next if($regexHash->{'exec_id'} == 0); 
+				next if($regexHash->{'pfw_executable_id'} == 0); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
 				if($verbose >=2){ print " : ",Dumper(@matchedArr);}
 
@@ -159,7 +162,9 @@ sub extractQAData
 								}
 							}
 							}
-							$outputId = getNextOutputID($self);
+							# DEPRECATED $outputId = getNextOutputID($self);
+							$outputId = getnextId('qc_output',$self->{_desdbh});
+							print "\n the next output id is $outputId";
 							# create the Variable name column for insertion	
 							push @variableIdArr, @$varHashTemp[$i]->{'id'};
 							push @extractedValue, $matchedArr[$i];
@@ -168,7 +173,7 @@ sub extractQAData
 							push @outputIdArr, $outputId;
 							
 						}
-
+		#(QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_EXECUTABLE_DEF_ID,ID,IMAGE)
 						$insertSth->bind_param_array(1,\@variableIdArr);
 						#$insertSth->bind_param_array(1,11);
 						$insertSth->bind_param_array(2,\@extractedValue);
@@ -176,7 +181,8 @@ sub extractQAData
 						$insertSth->bind_param_array(3, strftime "%a %b %e %H:%M:%S %Y", localtime); # NO ARRAY ONLY SCALAR
 						$insertSth->bind_param_array(4,\@extraInfoArr);
 						$insertSth->bind_param_array(5,\@execTableIdArr);
-						$insertSth->bind_param_array(6,$outputId);
+						#$insertSth->bind_param_array(6,$outputId);
+						$insertSth->bind_param_array(6,\@outputIdArr);
 						$insertSth->bind_param_array(7,$imageId);
 						$insertSth->execute_array({ArrayTupleStatus => \@tuple_status}) or print "\n ERROR IN INSERTING INTO OUPUT $!";
 						print "\n the errors for pattern: ",$regexHash->{'id'}," and EXED ID: ",$self->{_regexContainer}->{'exec_id'}," the final insert result is: ", Dumper(@tuple_status) if ($verbose >= 2);
@@ -193,34 +199,6 @@ sub extractQAData
 }
 
 
-#sub getQAInfo {
-#
-#	my $self = shift;
-#        my ($infoHashref) = @_;
-#        my $getStatusHash;
-#	my $sth;	
-#	my $desjob_dbid;
-#	my $sqlGetInfo = "Select threshold.intensity as status, out.qavariables_id from qa_output out, qaf_messages messages , qa_threshold threshold, execdefs where ";
-#	my $row;
-#	my $logFile = $infoHashref->{'logfile'};
-#	open( my $logFileHandle, ">$logFile" );
-#        if(defined $infoHashref->{'run'})
-#        {
-#		$sqlGetInfo .= ' block.run_id = '.$infoHashref->{'run'}.' and desjob.block_id = block.id and execdefs.desjob_id = desjob.id and execdefs.id = qa_output.execdefs_id and qaf_messages.pattern_id = qa_variables.id and qa_output.qavariables_id = qa_variables.id';
-#        }
-#
-#	my $sqlGetStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from qa_output out, qa_threshold threshold, execdefs  where execdefs.desjob_dbid = $desjob_dbid and out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
-#	$sth = $self->{_desdbh)->prepare($sqlGetInfo);
-#	$sth->execute();
-#	while($row = $sth->fetchrow_hashref()){
-#		print $logFileHandle, $infoHashref->{'run'}."\t".$row->{'message'}.
-#		
-#	}
-#        return $getStatusHash;
-#
-#
-#}
-#
 ####
 ## This subroutine cleans a filepath of the machine dependent part, and makes it compliant with DES file naming conventions.
 ###
@@ -255,18 +233,44 @@ sub getNextOutputID {
 
 }
 
+
+###
+# a generic function to return the next id from a sequencer
+###
+sub getnextId {
+
+        my ($table,$desdbh) = @_;
+        #
+        # Query the oracle sequencer for the location table
+        #
+
+  my $outputId = 0;
+  my $sql = " SELECT ".$table."_seq.nextval FROM dual";
+
+  my $sth=$desdbh->prepare($sql);
+  $sth->execute();
+  $sth->bind_columns(\$outputId);
+  $sth->fetch();
+  $sth->finish();
+
+        #print "\n sending $table id as $outputId";
+  return $outputId;
+}
+
+
+
 ###
 # this function matches the exec table id given as a param to the controller with the exec id belonging to the pattern
 ###
 sub execMatched {
 
 	my ($self, $regexHash, $execTableId) = @_;
-	print "\n matching exec $execTableId with ", $regexHash->{'exec_id'} if($verbose >=2);
-	return 1 if($regexHash->{'exec_id'} == $execTableId || $regexHash->{'exec_id'} == 0);
+	print "\n matching exec $execTableId with ", $regexHash->{'pfw_executable_id'} if($verbose >=2);
+	return 1 if($regexHash->{'pfw_executable_id'} == $execTableId || $regexHash->{'pfw_executable_id'} == 0);
 }
 
 
-sub getQAStatus {
+sub getQCStatus {
 
 	# support run, block, desjob, module, exec
 	my $self = shift;
@@ -289,30 +293,30 @@ sub getStatusData {
 	$finalFromTableForLookup = '';
 	$finalWhereForLookup = '';
 
-	push @fromTables, 'execdefs';
+	push @fromTables, 'pfw_executable_def';
 	if(defined $infoHashref->{'run'}){
-		push @whereClause , ' run.run = \''.$infoHashref->{'run'}.'\' and run.id = block.run_id and desjob.block_id = block.id and module.desjob_id = desjob.id and execdefs.module_id = module.id ';
+		push @whereClause , ' run.run = \''.$infoHashref->{'run'}.'\' and run.id = block.run_id and pfw_job.block_id = block.id and pfw_module.pfw_job_id = pfw_job.id and pfw_executable_def.pfw_module_id = pfw_module.id ';
 		push @fromTables, 'run';
 		push @fromTables, 'block';
-		push @fromTables, 'desjob';
-		push @fromTables, 'module';
+		push @fromTables, 'pfw_job';
+		push @fromTables, 'pfw_module';
 	} elsif(defined $infoHashref->{'block'}){
 	#if(defined $infoHashref->{'block'} && not defined $infoHashref->{'run'}){
-		push @whereClause , ' block.id = '.$infoHashref->{'block_id'}.' and desjob.block_id = block.id and module.desjob_id = desjob.id and execdefs.module_id = module.id ';
+		push @whereClause , ' block.id = '.$infoHashref->{'block_id'}.' and pfw_job.block_id = block.id and pfw_module.pfw_job_id = pfw_job.id and pfw_executable_def.pfw_module_id = pfw_module.id ';
 		push @fromTables, 'block';
-		push @fromTables, 'desjob';
-		push @fromTables, 'module';
+		push @fromTables, 'pfw_job';
+		push @fromTables, 'pfw_module';
 	} elsif(defined $infoHashref->{'desjob_dbid'}){
 	#if(defined $infoHashref->{'desjob_dbid'} && not defined $infoHashref->{'block_id'} && not defined $infoHashref->{'run'}){
-		push @whereClause , ' execdefs.desjob_dbid = '.$infoHashref->{'desjob_dbid'};
+		push @whereClause , ' pfw_executable_def.pfw_job_id = '.$infoHashref->{'desjob_dbid'};
 		#push @fromTables, 'desjob';
 	} elsif(defined $infoHashref->{'module_id'}){
-		push @whereClause , ' module.id = '.$infoHashref->{'module_id'}.' and execdefs.module_id = module.id ';
-		push @fromTables, 'module';
+		push @whereClause , ' pfw_module.id = '.$infoHashref->{'module_id'}.' and pfw_executable_def.pfw_module_id = pfw_module.id ';
+		push @fromTables, 'pfw_module';
 	}
 	elsif(defined $infoHashref->{'execdefs_id'}){
 	
-		push @whereClause , ' execdefs.id = '.$infoHashref->{'execdefs_id'} ;
+		push @whereClause , ' pfw_executable_def.id = '.$infoHashref->{'execdefs_id'} ;
 	}
 	else{
 		print "\n No params given";
@@ -346,24 +350,24 @@ sub getStatusData {
 	}
 
 	
-	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qavariables_id from $finalFromTableForLookup qa_output out, qa_threshold threshold where $finalWhereForLookup out.execdefs_id = execdefs.id and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value group by out.qavariables_id, threshold.intensity";
-	print "\n The get QA LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
-	#$sqlFetchJobStatus = "select out.qavariables_id, threshold.intensity as status from qa_output out, qa_threshold threshold where out.job_dbid = $desJob_dbId and out.qavariables_id = threshold.qavariables_id and out.value between threshold.min_value AND threshold.max_value";
+	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qc_variable_id from $finalFromTableForLookup qc_output out, qc_threshold threshold where $finalWhereForLookup out.pfw_executable_def_id = pfw_executable_def.id and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value group by out.qc_variable_id, threshold.intensity";
+	print "\n The get QC LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
+	#$sqlFetchJobStatus = "select out.qc_variable_id, threshold.intensity as status from qc_output out, qc_threshold threshold where out.job_dbid = $desJob_dbId and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value";
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchJobStatus) ;
 	$fetchJobStatusSth->execute();
 	while($rowFetchStatus = $fetchJobStatusSth->fetchrow_hashref()){
-		#$varStatus->{$rowFetchStatus->{'qavariables_id'}} = applyThreshold($rowFetchStatus);
-		#$varHash->{$rowFetchStatus->{'qavariables_id'}} = $rowFetchStatus;
+		#$varStatus->{$rowFetchStatus->{'qc_variable_id'}} = applyThreshold($rowFetchStatus);
+		#$varHash->{$rowFetchStatus->{'qc_variable_id'}} = $rowFetchStatus;
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
-	my $sqlFetchStatPatterns = 'select count(qaf_messages.pattern_id) as count ,qaf_messages.pattern_id, qa_patterns.type as status from '.$finalFromTableForLookup.' qaf_messages, qa_patterns where '.$finalWhereForLookup.' qa_patterns.type like \'%status%\' and qa_patterns.id = qaf_messages.pattern_id and execdefs.id = qaf_messages.execdefs_id  group by qaf_messages.pattern_id, qa_patterns.type';
+	my $sqlFetchStatPatterns = 'select count(qcf_message.pattern_id) as count ,qcf_message.pattern_id, qc_pattern.type as status from '.$finalFromTableForLookup.' qcf_message, qc_pattern where '.$finalWhereForLookup.' qc_pattern.type like \'%status%\' and qc_pattern.id = qcf_message.pattern_id and pfw_executable_def.id = qcf_message.pfw_executable_def_id  group by qcf_message.pattern_id, qc_pattern.type';
 	print "\n The get STATUS LEVEL query: $sqlFetchStatPatterns " if($verbose >=2);
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
 	$fetchJobStatusSth->execute();
 	while(my $rowFetchStatusRows = $fetchJobStatusSth->fetchrow_hashref()){
-		#$varStatus->{$rowFetchStatus->{'qavariables_id'}} = applyThreshold($rowFetchStatus);
-		#$varHash->{$rowFetchStatus->{'qavariables_id'}} = $rowFetchStatus;
+		#$varStatus->{$rowFetchStatus->{'qc_variable_id'}} = applyThreshold($rowFetchStatus);
+		#$varHash->{$rowFetchStatus->{'qc_variable_id'}} = $rowFetchStatus;
 		push @$retStatusArr, $rowFetchStatusRows;
 	}
 
@@ -378,33 +382,37 @@ sub applyThresholdRules {
 	my ($varHash) = @_;
 	my ($varKey,$arrVarIds,$strVarIds,$sqlGetThreshold,$rowThreshold, $thresholdSth, $retHash);
 	foreach $varKey (keys %$varHash){
-		$strVarIds .= $varHash->{$varKey}{'qavariables_id'}.", ";
-		#push (@$arrVarIds, $varHash->{$varKey}{'qavariables_id'});
+		$strVarIds .= $varHash->{$varKey}{'qc_variable_id'}.", ";
+		#push (@$arrVarIds, $varHash->{$varKey}{'qc_variable_id'});
 	}
 
 	$strVarIds = substr $strVarIds, 0, -2;	
-	$sqlGetThreshold = "select min_value, max_value, qavariables_id, intensity from qa_threshold where qavariables_id IN (".$strVarIds.") order by intensity asc";
+	$sqlGetThreshold = "select min_value, max_value, qc_variable_id, intensity from qc_threshold where qc_variable_id IN (".$strVarIds.") order by intensity asc";
 	$thresholdSth = $self->{_desdbh}->prepare($sqlGetThreshold);
 	$thresholdSth->execute();
 	while($rowThreshold = $thresholdSth->fetchrow_hashref()){
 		
-		if($varHash->{$rowThreshold->{'qavariables_id'}}->{'value'} >= $rowThreshold->{'min_value'} || $varHash->{$rowThreshold->{'qavariables_id'}}->{'value'} <= $rowThreshold->{'max_value'}){
-			$retHash->{$rowThreshold->{'qavariables_id'}} = $rowThreshold->{'intensity'}
+		if($varHash->{$rowThreshold->{'qc_variable_id'}}->{'value'} >= $rowThreshold->{'min_value'} || $varHash->{$rowThreshold->{'qc_variable_id'}}->{'value'} <= $rowThreshold->{'max_value'}){
+			$retHash->{$rowThreshold->{'qc_variable_id'}} = $rowThreshold->{'intensity'}
 		} 
 	}
 	print "\n the ret hash are ", Dumper($retHash);;
 }
 
 
-sub storeQAFMessage {
+sub storeQCFMessage {
 
 	my ($self,$line,$execTableId,$patternId) = @_;
-	my $sql;
+	my ($sql,$id);
 	my $sqlSth;
 	if(!defined $patternId) {
 	$patternId = 0;	
 	}
-	$sql = "insert into qaf_messages values ($execTableId,\'$line\',$patternId,".$self->{_timestamp}.")";
+
+	$id = getnextId('qcf_message',$self->{_desdbh});	
+	$line = $self->{_desdbh}->quote($line);
+	
+	$sql = "insert into qcf_message (id,pfw_executable_def_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,".$self->{_timestamp}.")";
 	$sqlSth = $self->{_desdbh}->prepare($sql) or print "Error in preparing $!";
         $sqlSth->execute() or print "\n\t ### error -> $! ###";#logError($!);
 }
@@ -412,9 +420,9 @@ sub storeQAFMessage {
 
 sub logError {
 	my ($errorMessage) = @_;
-	print "\n########### ERROR IN QAF BEGIN ########";
+	print "\n########### ERROR IN QCF BEGIN ########";
 	print "\n\t $errorMessage";
-	print "\n########### ERROR IN QAF END ########";
+	print "\n########### ERROR IN QCF END ########";
 }
 
 sub parse {
@@ -445,36 +453,36 @@ sub gulp {
     return @lines;
 }
 
-sub registerQAEvent {
+sub registerQCEvent {
 
 	my ($self,$regexHash, $matchedArr) = @_;
-	my $sql_getAllQAVars = "select * from qa_variables where pattern_id = ".$regexHash->{'id'};
+	my $sql_getAllQCVars = "select * from qc_variable where pattern_id = ".$regexHash->{'id'};
 	
 	#print "\n the regex caught is: "; #$regexObj->id;
-        my $patternQAVars;
+        my $patternQCVars;
 	my $patternDBHashRef;
 	my $patternid = $regexHash->{'id'};
-        my $patternSql = qq{select * from QA_VARIABLES where pattern_id = $patternid order by pattern_location };
+        my $patternSql = qq{select * from QC_VARIABLES where pattern_id = $patternid order by pattern_location };
         my $patternSth = $self->{_desdbh}->prepare($patternSql) or print "Error in preparing $!";
         $patternSth->execute();
 
 	while($patternDBHashRef = $patternSth->fetchrow_hashref()){
 	
-        push@{$patternQAVars}, $patternDBHashRef;
+        push@{$patternQCVars}, $patternDBHashRef;
 
         }
 	
         $patternSth->finish();
 
 
-	#print "\n the qa vars in register ", Dumper($patternQAVars);
+	#print "\n the qc vars in register ", Dumper($patternQCVars);
 }
 
 sub DESTROY
 {
 	my ($self) = @_;
          $self->{_desdbh}->disconnect();;
-	print "\n ### DESTROYING QAFRAMEWORK " if ($verbose >= 3 );
+	print "\n ### DESTROYING QCFRAMEWORK " if ($verbose >= 3 );
 }
 
 1;
