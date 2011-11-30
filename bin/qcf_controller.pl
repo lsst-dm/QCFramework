@@ -55,6 +55,10 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 			}
 		}
 	}
+
+	my $statusHashRef = $qcFramework->getStatusData($infoHashref);
+        print "\n the statusHashRef for execDefsId $execDefsId: ", Dumper($statusHashRef);
+
 	
 	print "\n QCF Controller has finished processing output. Exiting... \n ";
 

@@ -275,7 +275,7 @@ sub extractDets {
 	print "\n the final execDefsId of filepath $filepath  for $sqlfinalExecDefsId is $finalExecDefs_id";
 	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 2 > controllerout";
 	close($fileHandle);
-	print "\n ####### DONE #######";
+	print "\n ####### DONE ####### \n ";
 }
 
 
