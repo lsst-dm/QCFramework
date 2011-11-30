@@ -269,18 +269,23 @@ sub execMatched {
 	return 1 if($regexHash->{'pfw_executable_id'} == $execTableId || $regexHash->{'pfw_executable_id'} == 0);
 }
 
-
+## Deprecated ##
 sub getQCStatus {
+## Deprecated ##
 
 	# support run, block, desjob, module, exec
 	my $self = shift;
 	my ($infoHashref) = @_;
+## Deprecated ##
 	my $getStatusHash;
 	if(defined $infoHashref->{'desjob_dbid'})
 	{
+## Deprecated ##
 		$getStatusHash = getStatusData($self, $infoHashref->{'desjob_dbid'});
 	}
+## Deprecated ##
 
+## Deprecated ##
 	return $getStatusHash;
 }
 
@@ -361,7 +366,7 @@ sub getStatusData {
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
-	my $sqlFetchStatPatterns = 'select count(qcf_message.pattern_id) as count ,qcf_message.pattern_id, qc_pattern.type as status from '.$finalFromTableForLookup.' qcf_message, qc_pattern where '.$finalWhereForLookup.' qc_pattern.type like \'%status%\' and qc_pattern.id = qcf_message.pattern_id and pfw_executable_def.id = qcf_message.pfw_executable_def_id  group by qcf_message.pattern_id, qc_pattern.type';
+	my $sqlFetchStatPatterns = 'select count(qcf_message.qc_pattern_id) as count ,qcf_message.qc_pattern_id, qc_pattern.type as status from '.$finalFromTableForLookup.' qcf_message, qc_pattern where '.$finalWhereForLookup.' qc_pattern.type like \'%status%\' and qc_pattern.id = qcf_message.qc_pattern_id and pfw_executable_def.id = qcf_message.pfw_executable_def_id  group by qcf_message.qc_pattern_id, qc_pattern.type';
 	print "\n The get STATUS LEVEL query: $sqlFetchStatPatterns " if($verbose >=2);
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
 	$fetchJobStatusSth->execute();
@@ -371,6 +376,22 @@ sub getStatusData {
 		push @$retStatusArr, $rowFetchStatusRows;
 	}
 
+	my @messageForStatus;
+	if(defined $infoHashref->{'showmessages'}){
+	
+		my $sqlGetMessageForStatus = ' SELECT qcf_message.message,qc_pattern.type from '.$finalFromTableForLookup.' qcf_message,qc_pattern where '.$finalWhereForLookup.' qcf_message.pfw_executable_def_id = pfw_executable_def.id and qcf_message.qc_pattern_id = qc_pattern.id';
+		my $fetchGetMessageSth = $self->{_desdbh}->prepare($sqlGetMessageForStatus) ;
+		$fetchGetMessageSth->execute();
+		while(my $rowGetMessage = $fetchGetMessageSth->fetchrow_hashref()){
+			#$varStatus->{$rowFetchStatus->{'qc_variable_id'}} = applyThreshold($rowFetchStatus);
+			#$varHash->{$rowFetchStatus->{'qc_variable_id'}} = $rowFetchStatus;
+			push @messageForStatus, $rowGetMessage;
+		}
+
+		push @$retStatusArr, @messageForStatus;
+	
+	
+	}
 
 	return $retStatusArr;
 }
