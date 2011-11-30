@@ -16,7 +16,7 @@ Getopt::Long::GetOptions(
     "moduleid:s"     => \$module_id,
     "blockid:s"     => \$block_id,
     "run:s"     => \$run,
-    "desjobid:s"     => \$desjob_id,
+    "pfwjobId:s"     => \$desjob_id,
     "verbose:i"     => \$verbose,
     "execdefsid:s"     => \$execdefs_id,
     "showmessages:s"     => \$showmessages,
@@ -62,7 +62,7 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-          . " -desjobId DESJobID -moduleId <module's Id> -run RunNumber -blockId <ID of the block> \n"
+          . " -pfwjobId PFWJobID -moduleId <module's Id> -run RunNumber -blockId <ID of the block> \n"
           #. "       (to be implemented)if desjob_dbid is NOT known, Jobs can be identified by providing a bunch of other variables together:\n"
     );
 
