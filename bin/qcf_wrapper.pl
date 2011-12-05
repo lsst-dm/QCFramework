@@ -4,7 +4,7 @@
 use strict;
 use warnings;
 use FileHandle;
-use QCFramework;
+use QCF::QCFramework;
 use Getopt::Long;
 use Data::Dumper;
 use DB::FileUtils;
@@ -273,7 +273,7 @@ sub extractDets {
 	$desdbh->disconnect();
 
 	print "\n the final execDefsId of filepath $filepath  for $sqlfinalExecDefsId is $finalExecDefs_id";
-	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 2 > controllerout";
+	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 1 >> controllerout";
 	close($fileHandle);
 	print "\n ####### DONE ####### \n ";
 }
