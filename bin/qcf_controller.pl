@@ -4,7 +4,8 @@
 use strict;
 use warnings;
 use FileHandle;
-use QCF::QCFramework;
+use QCFramework;
+#use QCF::QCFramework;
 use Getopt::Long;
 use Data::Dumper;
 my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath);
@@ -29,7 +30,8 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 	$infoHashref->{'filepath'} = $fileList;
 
 
-	my $qcFramework = QCF::QCFramework->new($infoHashref);
+	#my $qcFramework = QCF::QCFramework->new($infoHashref);
+	my $qcFramework = QCFramework->new($infoHashref);
 	### 
 	# Open the file containing a list of all the files to be read.
 	###

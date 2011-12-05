@@ -28,7 +28,8 @@ Getopt::Long::GetOptions(
  usage("You must supply atleast one of blockId, moduleId, run, desjobId to proceed");
 }
 	
-use QCF::QCFramework;
+#use QCF::QCFramework;
+use QCFramework;
 
 	$infoHashref->{'project'} = $project;
 	$infoHashref->{'run'} = $run;
@@ -39,7 +40,8 @@ use QCF::QCFramework;
 	$infoHashref->{'execdefs_id'} = $execdefs_id;
 	$infoHashref->{'showmessages'} = $showmessages;
 
-	my $qcFramework = QCF::QCFramework->new($infoHashref);
+	#my $qcFramework = QCF::QCFramework->new($infoHashref);
+	my $qcFramework = QCFramework->new($infoHashref);
 
 	#print "\n ### $desjob_dbid";
 	#my $statusHashRef = $qcFramework->getQCStatus($infoHashref);

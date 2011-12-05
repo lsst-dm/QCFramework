@@ -4,7 +4,8 @@
 use strict;
 use warnings;
 use FileHandle;
-use QCF::QCFramework;
+use QCFramework;
+#use QCF::QCFramework;
 use Getopt::Long;
 use Data::Dumper;
 use DB::FileUtils;

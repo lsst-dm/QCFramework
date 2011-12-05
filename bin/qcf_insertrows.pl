@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 use FileHandle;
-use QCF::QCFramework;
+#use QCF::QCFramework;
+use QCFramework;
 use Getopt::Long;
 use Data::Dumper;
 
