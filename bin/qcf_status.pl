@@ -13,12 +13,12 @@ use Data::Dumper;
 	
 Getopt::Long::GetOptions(
     "desjob_dbid=i"    => \$desjob_dbid, # this is the unique dbid which can be used to get information about a unique job. if this is not present, we will need other parameters like run, project and desjob_id to come close to identifying a job.
-    "moduleid:s"     => \$module_id,
-    "blockid:s"     => \$block_id,
+    "pfwmoduleid:s"     => \$module_id,
+    "pfwblockid:s"     => \$block_id,
     "run:s"     => \$run,
-    "pfwjobId:s"     => \$desjob_id,
+    "pfwjobid:s"     => \$desjob_id,
     "verbose:i"     => \$verbose,
-    "execdefsid:s"     => \$execdefs_id,
+    "pfwexecdefsid:s"     => \$execdefs_id,
     "showmessages:s"     => \$showmessages,
 ) or usage("Invalid command line options\n");
 
@@ -64,11 +64,11 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-          . " -pfwjobId PFWJobID -moduleId <module's Id> -run RunNumber -blockId <ID of the block> \n"
-          #. "       (to be implemented)if desjob_dbid is NOT known, Jobs can be identified by providing a bunch of other variables together:\n"
+          . " -pfwexecdefsid <PFW_EXECUTABLE_DEF_ID> -pfwjobid PFWJobID -pfwmoduleid <module's Id> -run RunNumber -pfwblockid <ID of the block> -showmessages (If you want to see the messages too) \n"
     );
 
     die("\n")
 
 }
+
 
