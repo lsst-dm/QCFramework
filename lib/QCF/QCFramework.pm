@@ -52,6 +52,10 @@ sub new {
 	$self->{_desdbh} = DB::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
 	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-MI-SS')";
 
+	## Support for LOB datatypes
+	$self->{_desdbh}->{LongReadLen} = 66000;
+        $self->{_desdbh}->{LongTruncOk} = 1;
+
 	if(defined $infoHashref->{'execdefs_id'}){
 		$self->{_regexContainer} = RegexContainer->new($infoHashref) ;
 	}
@@ -356,7 +360,7 @@ sub getStatusData {
 
 	
 	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qc_variable_id from $finalFromTableForLookup qc_output out, qc_threshold threshold where $finalWhereForLookup out.pfw_executable_def_id = pfw_executable_def.id and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value group by out.qc_variable_id, threshold.intensity";
-	print "\n The get QC LEVEL query: $sqlFetchJobStatus " if($verbose >=2);
+	print "\n The get QC LEVEL query is: $sqlFetchJobStatus " if($verbose >=2);
 	#$sqlFetchJobStatus = "select out.qc_variable_id, threshold.intensity as status from qc_output out, qc_threshold threshold where out.job_dbid = $desJob_dbId and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value";
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchJobStatus) ;
 	$fetchJobStatusSth->execute();
