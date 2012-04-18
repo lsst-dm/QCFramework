@@ -5,21 +5,27 @@ use strict;
 use warnings;
 use FileHandle;
 use QCFramework;
-#use QCF::QCFramework;
+#use QCF::QCFramework; nn
 use Getopt::Long;
 use Data::Dumper;
 use DB::FileUtils;
+use File::Find;
 
-my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath);
+my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath,$noingest,$dir) = ();
 
 $verbose = 0;
 Getopt::Long::GetOptions(
     "filelist=s"    => \$fileList,
+    "dir=s"    => \$dir,
+    "noingest"    => \$noingest,
     "verbose=i"     => \$verbose,
 ) or usage("Invalid command line options\n");
 
 #usage("Please supply the execDefsId parameter") unless defined $execDefsId;
-usage("Please supply the filelist ") unless defined $fileList;
+usage("Please supply the filelist ") unless (defined $fileList || defined $dir);
+
+
+
 
 ##### qcf insertrows.pl script
 my $archiveSiteStr;
@@ -87,7 +93,7 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-	  . " -filelist <log files in a list (separated by newline)> \n"
+	  . " -filelist <log files in a list (separated by newline)> [-noingest] -dir <IN DEVELOPMENT point to a directory to bypass creating a file>\n"
 	  . "       filelist contains the list of files along with the full path. Either provide the filelist, or cat a file content to this script\n"
     );
 
@@ -141,11 +147,11 @@ sub extractDets {
 	$rethash->{'module'} = $module;
 	$rethash->{'run'} = $run;
 	$rethash->{'module'} = $module;
-	#print "\n the module is $module ";
+	print "\n the module is $module ";
 	#@matched = ($filename =~ /(.*)_($module)_(.*)/);
 	
 	###
-	# Get the name of the executable from the string pattern: Executing <executable name>.pl	
+	# Get the job and the block names from the file	
 	###
 	my $regexCompiled =  qr/(.*)_($module)_(.*)(\.)(\w*)$/;
 	@matched = ($filename =~ $regexCompiled);
@@ -251,7 +257,7 @@ sub extractDets {
 		$exec_id = $row_fetchExecId->{'id'}
 	}
 	$sth->finish();
-	#print "\n the values to insert into  exec sql $sqlInsert: $exec, $exec_id";	
+	print "\n ###INFO###  pfw_executable logfile: $logfilepath  executable: $exec, executable_id: $exec_id";	
 
 	my $execdefs_id = getnextId('pfw_executable_def',$desdbh);
 	my $sqlInsert = " MERGE INTO pfw_executable_def USING (SELECT $execdefs_id id,$exec_id pfw_executable_id , $finalModule_id pfw_module_id, $finalDesjob_id PFW_JOB_id FROM dual) S ON (pfw_executable_def.pfw_executable_id = S.pfw_executable_id and pfw_executable_def.pfw_module_id = S.pfw_module_id and pfw_executable_def.PFW_JOB_id = S.PFW_JOB_id) WHEN NOT MATCHED THEN INSERT (ID, pfw_executable_id, pfw_module_id,  PFW_JOB_id) VALUES (S.ID, S.pfw_executable_id, S.pfw_module_id, S.PFW_JOB_id)";
@@ -274,7 +280,12 @@ sub extractDets {
 	$desdbh->disconnect();
 
 	print "\n the final execDefsId of filepath $filepath  for $sqlfinalExecDefsId is $finalExecDefs_id";
-	readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 1 >> controllerout";
+	if (!$noingest){
+		readpipe "cat $filepath | perl qcf_controller.pl -execDefsId $finalExecDefs_id -verbose 1 >> controllerout";
+	}
+	else{
+		print "\n #### NOT INGESTING ####";
+	}
 	close($fileHandle);
 	print "\n ####### DONE ####### \n ";
 }
