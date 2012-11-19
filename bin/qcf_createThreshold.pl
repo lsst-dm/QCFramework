@@ -118,7 +118,7 @@ sub getnextId {
         #
 
   my $outputId = 0;
-  my $sql = " SELECT ".$table."_id.nextval FROM dual";
+  my $sql = " SELECT ".$table."_seq.nextval FROM dual";
 
   my $sth=$desdbh->prepare($sql);
   $sth->execute();
