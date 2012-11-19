@@ -7,23 +7,25 @@ use QCFramework;
 #use QCF::QCFramework;
 use Getopt::Long;
 use Data::Dumper;
-my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$execDefsId,$node,$verbose,$filePath);
+my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$wrapperInstanceId,$node,$verbose,$filePath,$patternExecNames);
 
 $verbose = 0;
 Getopt::Long::GetOptions(
     "filelist=s"    => \$fileList,
-    "execDefsId=i"     => \$execDefsId,
+    "execNames=s"    => \$patternExecNames,
+    "wrapperInstanceId=i"     => \$wrapperInstanceId,
     "node=i"     => \$node,
     "verbose=i"     => \$verbose,
 ) or usage("Invalid command line options\n");
 
-usage("Please supply the execDefsId parameter") unless defined $execDefsId;
+usage("Please supply the wrapperInstanceId parameter") unless defined $wrapperInstanceId;
 
         my $patternHash;
-	print "\n ************** CALLING QCF in Controller with execDefsId $execDefsId ***************************";
+	print "\n ************** CALLING QCF in Controller with wrapperInstanceId $wrapperInstanceId ***************************";
 	
 	$infoHashref->{'desjob_dbid'} = $desjob_dbid;
-	$infoHashref->{'execdefs_id'} = $execDefsId;
+	$infoHashref->{'exec_names'} = $patternExecNames;
+	$infoHashref->{'wrapper_instance_id'} = $wrapperInstanceId;
 	$infoHashref->{'node'} = $node;
 	$infoHashref->{'verbose'} = $verbose;
 	$infoHashref->{'filepath'} = $fileList;
@@ -57,8 +59,9 @@ usage("Please supply the execDefsId parameter") unless defined $execDefsId;
 		}
 	}
 
-	my $statusHashRef = $qcFramework->getStatusData($infoHashref);
-        print "\n the statusHashRef for execDefsId $execDefsId: ", Dumper($statusHashRef);
+	#$qcFramework->insertProcessedVals();
+	my $statusHashRef = "";#$qcFramework->getStatusData($infoHashref);
+        print "\n the statusHashRef for wrapperInstanceId $wrapperInstanceId: ", Dumper($statusHashRef);
 
 	
 	print "\n QCF Controller has finished processing output. Exiting... \n ";
@@ -79,10 +82,10 @@ sub usage {
         $message,
         "\n"
           . "usage: $command "
-	  . " -filelist <log files in a list (separated by newline)>  -execDefsId <Id Of The Exec File From Exec Table>\n"
+	  . " -filelist <log files in a list (separated by newline)>  -wrapperInstanceId <Id Of The Exec File From Exec Table> -execnames <comma separated names of executables>\n"
 	  . "       filelist contains the list of files along with the full path. Either provide the filelist, or cat a file content to this script\n"
           . "       desjob_dbid is the unique Database ID for the DESJob\n"
-          . "       execDefsId is the id from the execdefs table which was run for this log.\n"
+          . "       wrapperInstanceId is the id from the pfw_wrapper table which was run for this log.\n"
     );
 
     die("\n")
