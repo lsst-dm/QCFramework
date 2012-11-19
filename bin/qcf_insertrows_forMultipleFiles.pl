@@ -24,18 +24,24 @@ use DB::DESUtil;
 use DB::FileUtils;
 use FileHandle;
 
+
+die ("##### DEPRECATED. USE QCF_WRAPPER INSTEAD #####")
 my $patternHash;
-my ($filePath,$verbose);
+
+## Command line input params
+my ($outputfile,$filePath,$verbose);
 my ($tableHash,$whereHash,$statusArr,$whereColArr,$tableColArr,$desjobIdArr,$runArr,$colArr,$parentTag,$currTable,$whereTableName,$whereColVal,$allTablesNeeded,$sqlWhereColumns,$sqlFrom,$sqlFinal,$desjob_dbid,$run,$desjob_id );
 my ($fileList,$infoHashref);
 	
 Getopt::Long::GetOptions(
 
     "fileList=s"     => \$fileList,
+    "outputfile=s"     => \$outputfile,
     "verbose:i"     => \$verbose,
 ) or usage("Invalid command line options\n");
 
 usage("\nYou must provide the file path to proceed") unless defined $fileList;
+usage("\nYou must provide the outputfile path to proceed") unless defined $outputfile;
 	
 	$infoHashref->{'desjob_dbid'} = $desjob_dbid;
 	$infoHashref->{'run'} = $run;
@@ -60,22 +66,22 @@ my ( $resolvedFilenamesArrRef, $runIDS, $nites, $project ) =
   parseFilelist( \@files,  $archiveSiteStr,  $getKeywords, $skipOnFileId );
 
 
-#print "\n the files", Dumper($resolvedFilenamesArrRef);
+print "\n the files", Dumper($resolvedFilenamesArrRef);
 foreach my $resolvedFilenamesSingle (@{$resolvedFilenamesArrRef}){
-print "\n the files", Dumper($resolvedFilenamesSingle);
+#print "\n the files", Dumper($resolvedFilenamesSingle);
 
- extractDets(@$resolvedFilenamesSingle);
+ extractDets($outputfile,@$resolvedFilenamesSingle);
 }
 die "done";
 
 
 sub extractDets {
-	my ($resolvedFile) = @_;
+	my ($outputfile,$resolvedFile) = @_;
 	my ($project,$run,$block,$module,$desjob,$filename);
 	#print "\n the file ",Dumper(@$resolvedFile);
 	my @matchedArr;
 	my $logfilepath;
-	foreach my $tempHash (@$resolvedFile){
+	foreach my $tempHash ($resolvedFile){
 		#$logfilepath = %$tempHash->{'LOCALPATH'}.'/'.%$tempHash->{'FILENAME'};#$resolvedFile->{'LOCALPATH'}.'/'.%$resolvedFile->{'FILENAME'};
 		$logfilepath = $tempHash->{'LOCALPATH'}.'/'.$tempHash->{'FILENAME'};#$resolvedFile->{'LOCALPATH'}.'/'.%$resolvedFile->{'FILENAME'};
 		$project = $tempHash->{'PROJECT'};
@@ -84,6 +90,7 @@ sub extractDets {
 	}
 	
 	open( my $fileHandle, "<$logfilepath" );
+	open( FH_write, ">$outputfile" );
 	my @lines = <$fileHandle>;
 	my @matched;
 	my $rethash;
@@ -113,19 +120,22 @@ sub extractDets {
 	if(scalar @matched > 0) {
 		$desjob = $3;
 		$block = $1;
-		print "\n MATHCED! the text from this is block $1  moduke $2 desjob $3 module otherwse $module and filename $filename",Dumper($rethash);
+		print "\n MATCHED! the text from this is block $1  module $2 desjob $3 module otherwise $module and filename $filename",Dumper($rethash);
 	}
 	$rethash->{'desjob'} = $desjob;
 	$rethash->{'block'} = $block;
 
 	# module: id, desjobid, blockid
-	# execdefs: id, moduleid, desjobid, execid	
+	# execdefs: id, moduleid, desjobid, execid
 	# desjob: id, blockid
-	my $dsn = "DBI:Oracle:host=desdb.cosmology.illinois.edu;sid=des";
-	my $pw = 'deSadM1005';
-	my $user = 'des_admin';
+	my $DBIattr;
+	my $dsn = "DBI:Oracle:host=leovip148.ncsa.uiuc.edu;service_name=desoper";
+	my $user = 'ankitc';
+	my $pass = 'ank70chips';
+	my $connectDescriptor = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=leovip148.ncsa.uiuc.edu)(PORT=1521))(CONNECT_DATA=(SERVER=dedicated)(SERVICE_NAME=desoper)))";
+	#my $desdb_dbh = $self->SUPER::connect("DBI:Oracle:$connectDescriptor",$user,$pass, $DBIattr) or croak("Database connection error: $DBI::errstr\n");
 	my $row;
-	my $desdb_dbh = DBI->connect($dsn, $user, $pw);	
+	my $desdb_dbh = DBI->connect($dsn, $user, $pass);	
 	my $sth;
 	my $sql = "select run.id, block.block_id, block.run_id from block, run where block.run_id = run.id and run.run = \'$run\' and block_name = \'$block\'";
 	$sth = $desdb_dbh->prepare($sql);
@@ -141,36 +151,47 @@ sub extractDets {
 #
 my $desdbh = DB::DESUtil->new();
 
-	my $sqlInsert = "insert into desjob (id, block_id) values ($desjob,$block_id)";
-	print "\n the values to insert into desjob sql $sqlInsert : $desjob, $block_id";	
+	my $job_id = getnextId('pfw_job',$desdbh);
+	my $sqlInsert = "insert into pfw_job (id, name ,block_id) values ($job_id,  "."'".$desjob."'".",$block_id)";
+	print "\n the values to insert into pfw_job sql are: $sqlInsert : $desjob, $block_id";	
 	$sth = $desdbh->prepare($sqlInsert);
-	#$sth->execute() or print "\n err inserting into desjob";
+	$sth->execute() or print "\n err inserting into desjob";
 	$sth->finish();
 
-	my $module_id = getnextId('module',$desdbh);
-	$sqlInsert = "insert into module (id, desjob_id, block_id) values ($module_id, $desjob,$block_id)";
-	print "\n the values to insert into  module sql $sqlInsert : $desjob,$module_id, $block_id";	
+	my $module_id = getnextId('pfw_module',$desdbh);
+	$sqlInsert = "insert into pfw_module (id, pfw_job_id, block_id) values ($module_id,  $job_id ,$block_id)";
+	print "\n the values to insert into  pfw_module sql $sqlInsert : $desjob,$module_id, $block_id";	
 	$sth = $desdbh->prepare($sqlInsert);
-	#$sth->execute() or print "\n err inserting into module";
+	$sth->execute() or print "\n err inserting into module";
 	$sth->finish();
 
-	my $exec_id = getnextId('exec',$desdbh);
-	$sqlInsert = "insert into exec (id, path, name) values ($exec_id, \'$exec\', \'$exec\')";
-	print "\n the values to insert into  exec sql $sqlInsert: $exec, $exec_id";	
+	my $exec_id = getnextId('pfw_executable',$desdbh);
+	$sqlInsert = "merge into pfw_executable A using (select '".$exec."' path from dual ) B on ( A.path = B.path) WHEN NOT MATCHED THEN INSERT  (A.id, A.path, A.name) values ($exec_id, \'$exec\', \'$exec\')";
+	#$sqlInsert = "insert into pfw_executable (id, path, name) values ($exec_id, \'$exec\', \'$exec\')";
+	print "\n the values to insert into  pfw_executable sql $sqlInsert: $exec, $exec_id";
 	$sth = $desdbh->prepare($sqlInsert);
-	#$sth->execute() or print "\n err inserting into exec";
+	$sth->execute() or print "\n err inserting into exec";
 	$sth->finish();
 
-	my $execdefs_id = getnextId('execdefs',$desdbh);
-	$sqlInsert = "insert into execdefs (id,exec_id,module_id, desjob_dbid) values ($execdefs_id,$exec_id, $module_id, $block_id)";
-	print "\n the values to insert into  execdefs sql $sqlInsert: $exec_id, $module_id, $block_id, $execdefs_id";	
+	my $sqlSelect = "select id from pfw_executable where path like '%".$exec."%'";
+	$sth = $desdbh->prepare($sqlSelect);
+	$sth->execute() or print "\n err inserting into exec";
+	my $rowExecTableId = $sth->fetchrow_hashref();
+	$exec_id = $rowExecTableId->{'id'};
+	$sth->finish();
+
+	my $execdefs_id = getnextId('pfw_executable_def',$desdbh);
+	$sqlInsert = "insert into pfw_executable_def (id,pfw_executable_id,pfw_module_id, pfw_job_id) values ($execdefs_id,$exec_id, $module_id, $block_id)";
+	print "\n the values to insert into  pfw_executable_def sql $sqlInsert: $exec_id, $module_id, $block_id, $execdefs_id";	
 	$sth = $desdbh->prepare($sqlInsert);
-	#$sth->execute() or print "\n err inserting into execdefs";
+	$sth->execute() or print "\n err inserting into execdefs";
 	$sth->finish();
 
 	$desdbh->commit();
 	$desdbh->disconnect();
 
+
+	print FH_write "\n$logfilepath : $execdefs_id";
 	print "\n the final execDefsId is $execdefs_id";
 	print "\n ####### DONE #######";
 }
@@ -183,15 +204,15 @@ sub getnextId {
 	#
 
   my $outputId = 0;
-  my $sql = " SELECT ".$table."_id.nextval FROM dual";
+  my $sql = " SELECT ".$table."_seq.nextval FROM dual";
 
   my $sth=$desdbh->prepare($sql);
-  #$sth->execute();
-  #$sth->bind_columns(\$outputId);
-  #$sth->fetch();
-  #$sth->finish();
+  $sth->execute();
+  $sth->bind_columns(\$outputId);
+  $sth->fetch();
+  $sth->finish();
 
-	#print "\n sending $table id as $outputId";
+	print "\n sending $table id as $outputId";
   return $outputId;
 }
 
