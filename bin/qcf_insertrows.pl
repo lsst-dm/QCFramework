@@ -30,6 +30,9 @@ my ($filePath,$verbose);
 my ($tableHash,$whereHash,$statusArr,$whereColArr,$tableColArr,$desjobIdArr,$runArr,$colArr,$parentTag,$currTable,$whereTableName,$whereColVal,$allTablesNeeded,$sqlWhereColumns,$sqlFrom,$sqlFinal,$desjob_dbid,$run,$desjob_id );
 my ($fileList,$infoHashref);
 	
+
+die ("##### DEPRECATED. USE QCF_WRAPPER INSTEAD #####");
+
 Getopt::Long::GetOptions(
 
     "fileList=s"     => \$fileList,
