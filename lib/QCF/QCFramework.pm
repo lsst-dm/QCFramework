@@ -56,7 +56,7 @@ sub new {
 	$self->{_desdbh}->{LongReadLen} = 66000;
         $self->{_desdbh}->{LongTruncOk} = 1;
 
-	if(defined $infoHashref->{'execdefs_id'}){
+	if(defined $infoHashref->{'wrapper_instance_id'}){
 		$self->{_regexContainer} = RegexContainer->new($infoHashref) ;
 	}
 	$verbose = $infoHashref->{'verbose'} if defined $infoHashref->{'verbose'};
@@ -84,8 +84,8 @@ sub extractQCData
 	my @nodes;
 	my $now_time;
 	# Thu Nov 10 11:04:30 2011
-	#my $sqlInsert = "insert into qc_output (QCVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
-	my $sqlInsert = "insert into qc_output (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_EXECUTABLE_DEF_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
+	#my $sqlInsert = "insert into qc_processed_value (QCVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
+	my $sqlInsert = "insert into qc_processed_value (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_WRAPPER_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
 
         my $insertSth = $self->{_desdbh}->prepare($sqlInsert) or print "Error in preparing $!";
 	my $i;
@@ -98,7 +98,7 @@ sub extractQCData
 
 	### 
 	# If there is a filepath given to the function, then use that to open the file and read the data. 
-	###	
+	###
 	if($filePath) {
 
 		$mode = "file";
@@ -122,7 +122,8 @@ sub extractQCData
 			foreach my $regexHash (@$regexObj) { # Loop through the patterns
 				$regexPattern = $regexHash->{'pattern'};
 				if( $verbose >= 1){print "\n\n Current Pattern: $regexPattern\n\n";}
-				$regexCompiled = qr/$regexPattern/sm;
+				# MOVED TO REGEXCONTAINER. Now compilation of regular expression happens in regexcontainer.pm. this saves time in recompiling: $regexCompiled = qr/$regexPattern/sm;
+				$regexCompiled= $regexHash->{'pattern_compiled'};
 				##### match the regular expression #####
 				#### matched array matchedArr has the values extracted from the line above ####
 				@matchedArr = ($line =~ $regexCompiled);
@@ -130,18 +131,17 @@ sub extractQCData
 	## The following IF condition is important. It confirms that the pattern matched in the above regular expression actually belongs to the executable tied to the pfw_executable_def_id provided to the qcf_controller. This ensures that the QCFramework is working on the correct pattern for the executable ID provided. This is important because there could be more than one executables with same patterns.  
 	####
  
-				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'exec_id'})) {
-			
+				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'execname'})) {
 				undef @variableIdArr;
 				undef @extractedValue;
 				undef @extraInfoArr;
 				undef @execTableIdArr;
 				undef @outputIdArr;
 				### Store the line that matched, in to the database ###
-				#storeQCFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'pattern_id'});
-				storeQCFMessage($self, $line,$infoHashref->{'execdefs_id'},$regexHash->{'id'}) if($regexHash->{'pfw_executable_id'} == 0);
-				### do not continue with the variables if the exec_id is 0. since thats for status messages only
-				next if($regexHash->{'pfw_executable_id'} == 0); 
+				#storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'pattern_id'});
+				storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'id'}) if($regexHash->{'exectype'} =~ m/status/i );
+				### do not continue with the variables if the exectype is a status. since thats for status messages only
+				next if($regexHash->{'exectype'} =~ m/status/i); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
 				if($verbose >=2){ print " : ",Dumper(@matchedArr);}
 
@@ -167,13 +167,13 @@ sub extractQCData
 							}
 							}
 							# DEPRECATED $outputId = getNextOutputID($self);
-							$outputId = getnextId('qc_output',$self->{_desdbh});
+							$outputId = getnextId('qc_processed_value',$self->{_desdbh});
 							print "\n the next output id is $outputId";
 							# create the Variable name column for insertion	
 							push @variableIdArr, @$varHashTemp[$i]->{'id'};
 							push @extractedValue, $matchedArr[$i];
 							push @extraInfoArr, $infoHashref->{'node'};
-							push @execTableIdArr, $infoHashref->{'execdefs_id'};
+							push @execTableIdArr, $infoHashref->{'wrapper_instance_id'};
 							push @outputIdArr, $outputId;
 							
 						}
@@ -188,8 +188,8 @@ sub extractQCData
 						#$insertSth->bind_param_array(6,$outputId);
 						$insertSth->bind_param_array(6,\@outputIdArr);
 						$insertSth->bind_param_array(7,$imageId);
-						$insertSth->execute_array({ArrayTupleStatus => \@tuple_status}) or print "\n ERROR IN INSERTING INTO OUPUT $!";
-						print "\n the errors for pattern: ",$regexHash->{'id'}," and EXED ID: ",$self->{_regexContainer}->{'exec_id'}," the final insert result is: ", Dumper(@tuple_status) if ($verbose >= 2);
+						$insertSth->execute_array({ArrayTupleStatus => \@tuple_status}) or print "\n ERROR IN INSERTING INTO OUTPUT ",Dumper(@tuple_status);
+						print "\n the errors for pattern: ",$regexHash->{'id'},"  the final insert result is: ", Dumper(@tuple_status) if ($verbose >= 2);
 						$self->{_desdbh}->commit();
 					}
 				}
@@ -269,6 +269,8 @@ sub getnextId {
 sub execMatched {
 
 	my ($self, $regexHash, $execTableId) = @_;
+	# just return 1 for now. this is because in the new framework, qcframework won't be given any information through the wrapperInstanceId. This means that there is no point in checking the execname of a pattern against the execname coming from wrapperInstanceId
+	return 1;
 	print "\n matching exec $execTableId with ", $regexHash->{'pfw_executable_id'} if($verbose >=2);
 	return 1 if($regexHash->{'pfw_executable_id'} == $execTableId || $regexHash->{'pfw_executable_id'} == 0);
 }
@@ -323,9 +325,9 @@ sub getStatusData {
 		push @whereClause , ' pfw_module.id = '.$infoHashref->{'module_id'}.' and pfw_executable_def.pfw_module_id = pfw_module.id ';
 		push @fromTables, 'pfw_module';
 	}
-	elsif(defined $infoHashref->{'execdefs_id'}){
+	elsif(defined $infoHashref->{'wrapper_instance_id'}){
 	
-		push @whereClause , ' pfw_executable_def.id = '.$infoHashref->{'execdefs_id'} ;
+		push @whereClause , ' pfw_executable_def.id = '.$infoHashref->{'wrapper_instance_id'} ;
 	}
 	else{
 		print "\n No params given";
@@ -359,9 +361,9 @@ sub getStatusData {
 	}
 
 	
-	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qc_variable_id from $finalFromTableForLookup qc_output out, qc_threshold threshold where $finalWhereForLookup out.pfw_executable_def_id = pfw_executable_def.id and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value group by out.qc_variable_id, threshold.intensity";
+	$sqlFetchJobStatus = "select count(threshold.intensity) as status_count, threshold.intensity as status, out.qc_variable_id from $finalFromTableForLookup qc_processed_value out, qc_threshold threshold where $finalWhereForLookup out.pfw_executable_def_id = pfw_executable_def.id and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value group by out.qc_variable_id, threshold.intensity";
 	print "\n The get QC LEVEL query is: $sqlFetchJobStatus " if($verbose >=2);
-	#$sqlFetchJobStatus = "select out.qc_variable_id, threshold.intensity as status from qc_output out, qc_threshold threshold where out.job_dbid = $desJob_dbId and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value";
+	#$sqlFetchJobStatus = "select out.qc_variable_id, threshold.intensity as status from qc_processed_value out, qc_threshold threshold where out.job_dbid = $desJob_dbId and out.qc_variable_id = threshold.qc_variable_id and out.value between threshold.min_value AND threshold.max_value";
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchJobStatus) ;
 	$fetchJobStatusSth->execute();
 	while($rowFetchStatus = $fetchJobStatusSth->fetchrow_hashref()){
@@ -370,7 +372,7 @@ sub getStatusData {
 		push @$retStatusArr, $rowFetchStatus;
 	}
 	
-	my $sqlFetchStatPatterns = 'select count(qcf_message.qc_pattern_id) as count ,qcf_message.qc_pattern_id, qc_pattern.type as status from '.$finalFromTableForLookup.' qcf_message, qc_pattern where '.$finalWhereForLookup.' qc_pattern.type like \'%status%\' and qc_pattern.id = qcf_message.qc_pattern_id and pfw_executable_def.id = qcf_message.pfw_executable_def_id  group by qcf_message.qc_pattern_id, qc_pattern.type';
+	my $sqlFetchStatPatterns = 'select count(qc_processed_message.qc_pattern_id) as count ,qc_processed_message.qc_pattern_id, qc_pattern.type as status from '.$finalFromTableForLookup.' qc_processed_message, qc_pattern where '.$finalWhereForLookup.' qc_pattern.type like \'%status%\' and qc_pattern.id = qc_processed_message.qc_pattern_id and pfw_executable_def.id = qc_processed_message.pfw_executable_def_id  group by qc_processed_message.qc_pattern_id, qc_pattern.type';
 	print "\n The get STATUS LEVEL query: $sqlFetchStatPatterns " if($verbose >=2);
 	$fetchJobStatusSth = $self->{_desdbh}->prepare($sqlFetchStatPatterns) ;
 	$fetchJobStatusSth->execute();
@@ -383,7 +385,7 @@ sub getStatusData {
 	my @messageForStatus;
 	if(defined $infoHashref->{'showmessages'}){
 	
-		my $sqlGetMessageForStatus = ' SELECT qcf_message.message,qc_pattern.type from '.$finalFromTableForLookup.' qcf_message,qc_pattern where '.$finalWhereForLookup.' qcf_message.pfw_executable_def_id = pfw_executable_def.id and qcf_message.qc_pattern_id = qc_pattern.id';
+		my $sqlGetMessageForStatus = ' SELECT qc_processed_message.message,qc_pattern.type from '.$finalFromTableForLookup.' qc_processed_message,qc_pattern where '.$finalWhereForLookup.' qc_processed_message.pfw_executable_def_id = pfw_executable_def.id and qc_processed_message.qc_pattern_id = qc_pattern.id';
 		my $fetchGetMessageSth = $self->{_desdbh}->prepare($sqlGetMessageForStatus) ;
 		$fetchGetMessageSth->execute();
 		while(my $rowGetMessage = $fetchGetMessageSth->fetchrow_hashref()){
@@ -434,10 +436,10 @@ sub storeQCFMessage {
 	$patternId = 0;	
 	}
 
-	$id = getnextId('qcf_message',$self->{_desdbh});	
+	$id = getnextId('qc_processed_message',$self->{_desdbh});	
 	$line = $self->{_desdbh}->quote($line);
 	
-	$sql = "insert into qcf_message (id,pfw_executable_def_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,".$self->{_timestamp}.")";
+	$sql = "insert into qc_processed_message (id,pfw_wrapper_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,".$self->{_timestamp}.")";
 	$sqlSth = $self->{_desdbh}->prepare($sql) or print "Error in preparing $!";
         $sqlSth->execute() or print "\n\t ### error -> $! ###";#logError($!);
 }
