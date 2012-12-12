@@ -93,7 +93,7 @@ sub getRegexHash {
 	$variablesSth->execute() or print "\n #### ERROR FETCHING QC PATTERNS: $!";
 
 	# put singe quotes around the names of execs, so that we can query against them 
-	$exec_names =~  s/([a-zA-Z0-9_-]+)\s*(,?)/'$1'$2/g;
+	$exec_names =~  s/([^,\s]+)\s*(,?)/'$1'$2/g;
 	while($variablesDBHashRef = $variablesSth->fetchrow_hashref()){
 		push @{$variablesHash->{$variablesDBHashRef->{'pattern_id'}}}, $variablesDBHashRef;
 
