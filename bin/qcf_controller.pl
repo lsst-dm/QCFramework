@@ -84,7 +84,6 @@ sub usage {
           . "usage: $command "
 	  . " -filelist <log files in a list (separated by newline)>  -wrapperInstanceId <Id Of The Exec File From Exec Table> -execnames <comma separated names of executables>\n"
 	  . "       filelist contains the list of files along with the full path. Either provide the filelist, or cat a file content to this script\n"
-          . "       desjob_dbid is the unique Database ID for the DESJob\n"
           . "       wrapperInstanceId is the id from the pfw_wrapper table which was run for this log.\n"
     );
 
