@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use FileHandle;
-use DB::DESUtil;
+use coreutils::DESUtil;
 use RegexContainer;
 use POSIX 'strftime';
 use DBI;
@@ -49,7 +49,7 @@ sub new {
         my $self  = {};
 	my ($class,$infoHashref) = @_;
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-	$self->{_desdbh} = DB::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
+	$self->{_desdbh} = coreutils::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
 	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-MI-SS')";
 
 	## Support for LOB datatypes
@@ -141,7 +141,7 @@ sub extractQCData
 				#storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'pattern_id'});
 				storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'id'}) if($regexHash->{'exectype'} =~ m/status/i );
 				### do not continue with the variables if the exectype is a status. since thats for status messages only
-				next if($regexHash->{'exectype'} =~ m/status/i); 
+				next if($regexHash->{'type'} =~ m/^m$/i); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
 				if($verbose >=2){ print " : ",Dumper(@matchedArr);}
 
@@ -168,7 +168,7 @@ sub extractQCData
 							}
 							# DEPRECATED $outputId = getNextOutputID($self);
 							$outputId = getnextId('qc_processed_value',$self->{_desdbh});
-							print "\n the next output id is $outputId";
+							#print "\n the next output id is $outputId";
 							# create the Variable name column for insertion	
 							push @variableIdArr, @$varHashTemp[$i]->{'id'};
 							push @extractedValue, $matchedArr[$i];
