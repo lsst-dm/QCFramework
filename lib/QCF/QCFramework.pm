@@ -12,9 +12,9 @@ use DBI;
 use Data::Dumper;
 use Switch;
 
-if (defined($ENV{'DES_HOME'})) {
-   use lib $ENV{'DES_HOME'}."/lib/perl5";
-}
+#if (defined($ENV{'DES_HOME'})) {
+ #  use lib $ENV{'DES_HOME'}."/lib/perl5";
+#}
 
 
 
