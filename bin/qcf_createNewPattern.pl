@@ -42,19 +42,19 @@ if (length($mon) == 1){
 my $patternId = getnextId('qc_pattern',$desdbh);
 $patternHash->{'id'} = $patternId;
 ##$patternHash->{'pattern'} = "'STATUS2BEG\\s*Image\\s*(\\/.*\\.\\w+)\\s*\\:\\s*band\\=(\\w?)\\s*ZP\\=\\s*(\\d+\\.?\\d+)\\s*STATUS2END'";
-$patternHash->{'pattern'} = "'DETSECA\\s*=.*\\[(\\d*):(\\d*),(\\d*):(\\d*)\\].*'";
+$patternHash->{'pattern'} = "'Background: (.*)   RMS: (.*)  Weight scale: (.*)'";
 $patternHash->{'valid'} = "'y'";
 $patternHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
 $patternHash->{'type'} = "'qc'";
-$patternHash->{'exec_id'} = 0;
+$patternHash->{'execname'} = "'remap'";
 #
 # 32,40:s/\n/\r#/gc use this template to comment out all the lines with variables in them. replace 32,40 with start and end line numbers between which the comments are to be introduced.
 
 ######################### VARIABLE CONFIG #######################
 
 $variableHash->{'id'} = getnextId('qc_variable',$desdbh);
-$variableHash->{'name'} = "'DATASEC '";
-$variableHash->{'pretty_name'} = "'data sec q'";
+$variableHash->{'name'} = "'Background'";
+$variableHash->{'pretty_name'} = "'Background'";
 $variableHash->{'pattern_location'} = 1;
 $variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'valid'} = "'y'";
@@ -67,8 +67,8 @@ undef $variableHash;
 
 
 $variableHash->{'id'} = getnextId('qc_variable',$desdbh);
-$variableHash->{'name'} = "'DATASEC 2'";
-$variableHash->{'pretty_name'} = "'datasec 2 '";
+$variableHash->{'name'} = "'RMS'";
+$variableHash->{'pretty_name'} = "'RMS '";
 $variableHash->{'pattern_id'} = $patternId;
 $variableHash->{'pattern_location'} = 2;
 $variableHash->{'valid'} = "'y'";
@@ -78,17 +78,18 @@ $variableHash->{'action_code'} = 0;
 push @allVars, $variableHash;
 undef $variableHash;
 
-#$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
-#$variableHash->{'name'} = "'ZP'";
-#$variableHash->{'pretty_name'} = "'Coadd Catalog ZP'";
-#$variableHash->{'pattern_id'} = $patternId;
-#$variableHash->{'pattern_location'} = 3;
-#$variableHash->{'valid'} = "'y'";
-#$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
-#$variableHash->{'action_code'} = 0;
+$variableHash->{'id'} = getnextId('qc_variable',$desdbh);
+$variableHash->{'name'} = "'Weight Scale'";
+$variableHash->{'pretty_name'} = "'Weight Scale'";
+$variableHash->{'pattern_id'} = $patternId;
+$variableHash->{'pattern_location'} = 3;
+$variableHash->{'valid'} = "'y'";
+$variableHash->{'timestamp'} = "to_date('$yday-$year', 'DDD-yyyy')";
+$variableHash->{'action_code'} = 0;
 ####
 
-#push @allVars, $variableHash;
+push @allVars, $variableHash;
+undef $variableHash;
 
 ######################### VARIABLE CONFIG #######################
 
@@ -103,7 +104,7 @@ $desdbh->disconnect();
 die("\n\n exiting the program...");
 }
 
-my $sqlPattern = 'insert into qc_pattern (id,pattern,valid,timestamp,type,pfw_executable_id) values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'exec_id'}.')';
+my $sqlPattern = 'insert into qc_pattern (id,pattern,valid,timestamp,type,execname) values ('.$patternHash->{'id'}.','.$patternHash->{'pattern'}.','.$patternHash->{'valid'}.','.$patternHash->{'timestamp'}.','.$patternHash->{'type'}.','.$patternHash->{'execname'}.')';
 	print "\n the sql variable $sqlPattern ";
 my $sthPattern = $desdbh->prepare($sqlPattern);
 $sthPattern->execute() or print 'cannot insert into qc_pattern';
