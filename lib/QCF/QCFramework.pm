@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use FileHandle;
 use coreutils::DESUtil;
-use RegexContainer;
+use QCF::RegexContainer;
 use POSIX 'strftime';
 use DBI;
 use Data::Dumper;
@@ -58,7 +58,9 @@ sub new {
 
 	if(defined $infoHashref->{'wrapper_instance_id'}){
 		$self->{_regexContainer} = RegexContainer->new($infoHashref) ;
-	}
+	}else{
+    }
+
 	$verbose = $infoHashref->{'verbose'} if defined $infoHashref->{'verbose'};
         bless($self);           # but see below
 	#$sql = "select * from qc_pattern";
@@ -139,7 +141,7 @@ sub extractQCData
 				undef @outputIdArr;
 				### Store the line that matched, in to the database ###
 				#storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'pattern_id'});
-				storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'id'}) if($regexHash->{'exectype'} =~ m/status/i );
+				storeQCFMessage($self, $line,$infoHashref->{'wrapper_instance_id'},$regexHash->{'id'}) if($regexHash->{'type'} =~ m/^m$/i );
 				### do not continue with the variables if the exectype is a status. since thats for status messages only
 				next if($regexHash->{'type'} =~ m/^m$/i); 
 				if( $verbose >= 1){ print "\n\n \t Line $line matched with variables \n\n";}
