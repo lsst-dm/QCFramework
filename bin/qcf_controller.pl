@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 use FileHandle;
-use QCFramework;
-#use QCF::QCFramework;
+#use QCFramework;
+use QCF::QCFramework;
 use Getopt::Long;
 use Data::Dumper;
 my ($fileList,$stdinBuffer,$desjob_dbid,$line,$infoHashref,$wrapperInstanceId,$node,$verbose,$filePath,$patternExecNames);
