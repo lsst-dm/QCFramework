@@ -17,7 +17,7 @@ endif
 	-mkdir -p ${INSTALL_ROOT}
 	-rsync -Caq bin ${INSTALL_ROOT}
 	-mkdir -p ${INSTALL_ROOT}/perl
-	-rsync -Caq lib/QCF ${INSTALL_ROOT}/perl
+	-rsync -Caq perl/QCF ${INSTALL_ROOT}/perl
 	@echo "Make sure ${INSTALL_ROOT}/perl is in PERL5LIB"
 
 test:
