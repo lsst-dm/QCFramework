@@ -1,3 +1,2 @@
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
 envPrepend(PERL5LIB, ${PRODUCT_DIR}/perl)
-envPrepend(PERL5LIB, ${PRODUCT_DIR}/perl/QCF)
