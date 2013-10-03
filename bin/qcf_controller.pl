@@ -21,7 +21,7 @@ Getopt::Long::GetOptions(
 usage("Please supply the wrapperInstanceId parameter") unless defined $wrapperInstanceId;
 
         my $patternHash;
-	print "\n ************** CALLING QCF in Controller with wrapperInstanceId $wrapperInstanceId ***************************";
+	print "\n ************** CALLING QCF in Controller with wrapperInstanceId $wrapperInstanceId *************************** " if ($verbose >= 1);
 	
 	$infoHashref->{'desjob_dbid'} = $desjob_dbid;
 	$infoHashref->{'exec_names'} = $patternExecNames;
@@ -61,10 +61,10 @@ usage("Please supply the wrapperInstanceId parameter") unless defined $wrapperIn
 
 	#$qcFramework->insertProcessedVals();
 	my $statusHashRef = "";#$qcFramework->getStatusData($infoHashref);
-        print "\n the statusHashRef for wrapperInstanceId $wrapperInstanceId: ", Dumper($statusHashRef);
+        print "\n the statusHashRef for wrapperInstanceId $wrapperInstanceId: ", Dumper($statusHashRef) if($verbose >=1);
 
 	
-	print "\n QCF Controller has finished processing output. Exiting... \n ";
+	print "\n QCF Controller has finished processing output. Exiting... \n " if($verbose >=1);
 
 sub usage {
 
