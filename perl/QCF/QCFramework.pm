@@ -50,7 +50,6 @@ sub new {
 	my ($class,$infoHashref) = @_;
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 	$self->{_desdbh} = coreutils::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
-	$self->{_timestamp} = "to_date('$yday-$year $hour-$min-$sec', 'DDD-yyy HH24-MI-SS')";
 
 	## Support for LOB datatypes
 	$self->{_desdbh}->{LongReadLen} = 66000;
@@ -82,12 +81,11 @@ sub extractQCData
 	my @varHash;
 	my $varHashTemp;
 	my @runids;
-	my @timestamps;
 	my @nodes;
 	my $now_time;
 	# Thu Nov 10 11:04:30 2011
 	#my $sqlInsert = "insert into qc_processed_value (QCVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
-	my $sqlInsert = "insert into qc_processed_value (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_WRAPPER_ID,ID,IMAGE) values (?,?,to_date(?,'DY MON DD HH24:MI:SS YYYY'),?,?,?,?)";
+	my $sqlInsert = "insert into qc_processed_value (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_WRAPPER_ID,ID,IMAGE) values (?,?,SYSTIMESTAMP),?,?,?,?)";
 
         my $insertSth = $self->{_desdbh}->prepare($sqlInsert) or print "Error in preparing $!";
 	my $i;
@@ -183,13 +181,11 @@ sub extractQCData
 						$insertSth->bind_param_array(1,\@variableIdArr);
 						#$insertSth->bind_param_array(1,11);
 						$insertSth->bind_param_array(2,\@extractedValue);
-						#$insertSth->bind_param_array(3,$self->{_timestamp_variables}); # NO ARRAY ONLY SCALAR
-						$insertSth->bind_param_array(3, strftime "%a %b %e %H:%M:%S %Y", localtime); # NO ARRAY ONLY SCALAR
-						$insertSth->bind_param_array(4,\@extraInfoArr);
-						$insertSth->bind_param_array(5,\@execTableIdArr);
+						$insertSth->bind_param_array(3,\@extraInfoArr);
+						$insertSth->bind_param_array(4,\@execTableIdArr);
 						#$insertSth->bind_param_array(6,$outputId);
-						$insertSth->bind_param_array(6,\@outputIdArr);
-						$insertSth->bind_param_array(7,$imageId);
+						$insertSth->bind_param_array(5,\@outputIdArr);
+						$insertSth->bind_param_array(6,$imageId);
 						$insertSth->execute_array({ArrayTupleStatus => \@tuple_status}) or print "\n ERROR IN INSERTING INTO OUTPUT ",Dumper(@tuple_status);
 						print "\n the errors for pattern: ",$regexHash->{'id'},"  the final insert result is: ", Dumper(@tuple_status) if ($verbose >= 2);
 						$self->{_desdbh}->commit();
@@ -441,7 +437,7 @@ sub storeQCFMessage {
 	$id = getnextId('qc_processed_message',$self->{_desdbh});	
 	$line = $self->{_desdbh}->quote($line);
 	
-	$sql = "insert into qc_processed_message (id,pfw_wrapper_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,".$self->{_timestamp}.")";
+	$sql = "insert into qc_processed_message (id,pfw_wrapper_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,SYSTIMESTAMP)";
 	$sqlSth = $self->{_desdbh}->prepare($sql) or print "Error in preparing $!";
         $sqlSth->execute() or print "\n\t ### error -> $! ###";#logError($!);
 }
