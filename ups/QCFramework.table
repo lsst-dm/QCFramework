@@ -1,3 +1,4 @@
+setupRequired(switch)
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
 envPrepend(PERL5LIB, ${PRODUCT_DIR}/perl)
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
