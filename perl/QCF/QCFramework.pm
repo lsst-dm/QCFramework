@@ -85,7 +85,7 @@ sub extractQCData
 	my $now_time;
 	# Thu Nov 10 11:04:30 2011
 	#my $sqlInsert = "insert into qc_processed_value (QCVARIABLES_ID,VALUE,TS,NODE,EXECDEFS_ID,ID,IMAGE) values (?,?,to_date(?,'DD-MM-YYYY HH24:MI:SS'),?,?,?,?)";
-	my $sqlInsert = "insert into qc_processed_value (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_WRAPPER_ID,ID,IMAGE) values (?,?,SYSTIMESTAMP),?,?,?,?)";
+	my $sqlInsert = "insert into qc_processed_value (QC_VARIABLE_ID,VALUE,TIMESTAMP,NODE,PFW_WRAPPER_ID,ID,IMAGE) values (?,?,SYSTIMESTAMP,?,?,?,?)";
 
         my $insertSth = $self->{_desdbh}->prepare($sqlInsert) or print "Error in preparing $!";
 	my $i;
