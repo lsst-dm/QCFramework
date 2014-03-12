@@ -18,7 +18,10 @@ endif
 	-rsync -Caq bin ${INSTALL_ROOT}
 	-mkdir -p ${INSTALL_ROOT}/perl
 	-rsync -Caq perl/QCF ${INSTALL_ROOT}/perl
+	-mkdir -p ${INSTALL_ROOT}/python
+	-rsync -Caq python/qcframework ${INSTALL_ROOT}/python
 	@echo "Make sure ${INSTALL_ROOT}/perl is in PERL5LIB"
+	@echo "Make sure ${INSTALL_ROOT}/python is in PYTHONPATH"
 
 test:
 	@echo "QCFramework: tests are currently not available"
