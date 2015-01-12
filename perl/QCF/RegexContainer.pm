@@ -4,7 +4,7 @@ use 5.008008;
 use strict;
 use warnings;
 use Data::Dumper;
-use coreutils::DESUtil;
+use QCF::DESUtil;
 require Exporter;
 
 our @ISA = qw(Exporter);
@@ -44,7 +44,7 @@ sub new{
 	if (defined $infoHashref->{'verbose'}){
 	$verbose = $infoHashref->{'verbose'};
 	}
-	$self->{_desdbh} = coreutils::DESUtil->new(	DBIattr => {   AutoCommit => 0,     RaiseError => 1,   PrintError => 0	}) or print "\n #### THE ERROR in connecting to db $! ";
+	$self->{_desdbh} = QCF::DESUtil->new(	DBIattr => {   AutoCommit => 0,     RaiseError => 1,   PrintError => 0	}) or print "\n #### THE ERROR in connecting to db $! ";
 	$self->{_desdbh}->{LongReadLen} = 66000;
         $self->{_desdbh}->{LongTruncOk} = 1;
 ## use the wrapper_instance_id given in the qcf controller param list to get the details about which exec,module,job were used for this qc log file 
