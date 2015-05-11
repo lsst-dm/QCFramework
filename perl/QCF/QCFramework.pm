@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use FileHandle;
-use coreutils::DESUtil;
+use QCF::DESUtil;
 use QCF::RegexContainer;
 use POSIX 'strftime';
 use DBI;
@@ -49,7 +49,7 @@ sub new {
         my $self  = {};
 	my ($class,$infoHashref) = @_;
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-	$self->{_desdbh} = coreutils::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
+	$self->{_desdbh} = QCF::DESUtil->new(DBIattr => {AutoCommit => 0, RaiseError => 1, PrintError => 0   });
 
 	## Support for LOB datatypes
 	$self->{_desdbh}->{LongReadLen} = 66000;
