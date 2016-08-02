@@ -434,7 +434,11 @@ sub storeQCFMessage {
 	$patternId = 0;	
 	}
 
-	$id = getnextId('qc_processed_message',$self->{_desdbh});	
+	$id = getnextId('qc_processed_message',$self->{_desdbh});
+	if(length($line) > 4000){
+		$line = substr($line, 0, 3999);
+		$line .= '$';
+	}
 	$line = $self->{_desdbh}->quote($line);
 	
 	$sql = "insert into qc_processed_message (id,pfw_wrapper_id,message,qc_pattern_id,timestamp) values ($id, $execTableId,$line,$patternId,SYSTIMESTAMP)";
