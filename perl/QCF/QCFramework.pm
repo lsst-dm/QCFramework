@@ -117,6 +117,7 @@ sub extractQCData
 		chomp($line);
 		if( $verbose >= 2){print "\n\n Working on line $line\n\n";}
 		if( $verbose >= 2){print "\n\n the regexHash Object\n\n",Dumper($self->{_regexContainer}->{regex_hash});}
+		my $found = 0;
 		###foreach my $regexObj ($regexContainerObject->{regex_hash}) {
 		foreach my $regexObj ($self->{_regexContainer}->{regex_hash}) {
 			foreach my $regexHash (@$regexObj) { # Loop through the patterns
@@ -130,8 +131,8 @@ sub extractQCData
 	####
 	## The following IF condition is important. It confirms that the pattern matched in the above regular expression actually belongs to the executable tied to the pfw_executable_def_id provided to the qcf_controller. This ensures that the QCFramework is working on the correct pattern for the executable ID provided. This is important because there could be more than one executables with same patterns.  
 	####
- 
-				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'execname'})) {
+				if(scalar @matchedArr > 0 && execMatched($self,$regexHash,$self->{_regexContainer}->{'execname'}) && !$found) {
+				$found = 1;
 				undef @variableIdArr;
 				undef @extractedValue;
 				undef @extraInfoArr;
@@ -430,10 +431,10 @@ sub storeQCFMessage {
 	my ($self,$line,$execTableId,$patternId) = @_;
 	my ($sql,$id);
 	my $sqlSth;
+
 	if(!defined $patternId) {
 	$patternId = 0;	
 	}
-
 	$id = getnextId('qc_processed_message',$self->{_desdbh});
 	if(length($line) > 4000){
 		$line = substr($line, 0, 3999);
