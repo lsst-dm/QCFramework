@@ -136,10 +136,13 @@ sub connect {
         if ($@) {
             $lasterr = $DBI::errstr;
             my $timestamp = strftime("%x %H:%M:%S", localtime());
-            print "$timestamp: Error when trying to connect to database: $lasterr\n";
+            print "$timestamp: Could not connect to database, try $trycnt/$MAXTRIES\n";
             if ($trycnt < $MAXTRIES) {
                 print "\tRetrying...\n\n";
                 sleep($TRY_DELAY);
+            }
+            else{
+                print "$timestamp: Error, could not connect to the database after $MAXTRIES: $lasterr\n";
             }
         }
         else {
