@@ -22,9 +22,8 @@ class QCFDB (desdmdbi.DesDmDbi):
     """
 
     def __init__ (self, desfile=None, section=None):
-        miscutils.fwdebug(3, 'QCFDB_DEBUG', args)
         try:
-            desdmdbi.DesDmDbi.__init__ (self, *args, **kwargs)
+            desdmdbi.DesDmDbi.__init__ (self, desfile, section)
         except Exception as err:
             miscutils.fwdie("Error: problem connecting to database: %s\n\tCheck desservices file and environment variables" % err, 1)
             
