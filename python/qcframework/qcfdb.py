@@ -42,7 +42,7 @@ class QCFDB (desdmdbi.DesDmDbi):
             Dictionary containing the messages (and associated data) from the requested ids
         """
         # generate the sql
-        sql = "select * from task_message where task_id=%s" % (self.get_positional_bind_string(1))
+        sql = "select * from pfw_task_message where task_id=%s" % (self.get_positional_bind_string(1))
         #miscutils.fwdebug(0, 'QCFDB_DEBUG', "sql = %s" % sql)
         #miscutils.fwdebug(0, 'QCFDB_DEBUG', "wrapids = %s" % wrapids)
         # get a cursor and prepare the query

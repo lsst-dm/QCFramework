@@ -8,9 +8,9 @@ from despydmdb import desdmdbi
 
 class Messaging(file):
     """ Class to handle writing logs and scanning the input for messages that need to be inserted
-        into the TASK_MESSAGE table. Patterns which indicate messages which need saving are provided
-        in the MESSAGE_PATTERN table and patterns which indicated messages to be ignored are
-        provided in the MESSAGE_IGNORE table.
+        into the PFW_TASK_MESSAGE table. Patterns which indicate messages which need saving are provided
+        in the PFW_MESSAGE_PATTERN table and patterns which indicated messages to be ignored are
+        provided in the PFW_MESSAGE_IGNORE table.
 
         Keywords
         --------
@@ -129,12 +129,12 @@ class Messaging(file):
         # get the patterns from the database if needed
         if usedb:
             if len(self._patterns) == 0:
-                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from message_pattern where execname in ('global','%s') and used='y' order by priority" % (execname.replace(',', "','")))
+                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (execname.replace(',', "','")))
                 desc = [d[0].lower() for d in self.cursor.description]
                 for line in self.cursor:
                     self._patterns.append(dict(zip(desc, line)))
             if len(self.ignore) == 0:
-                self.cursor.execute("select pattern from message_ignore where used='y'")
+                self.cursor.execute("select pattern from ops_message_ignore where used='y'")
                 for line in self.cursor:
                     self.ignore.append(line[0])
         pats = []
@@ -265,7 +265,7 @@ class Messaging(file):
                 # make no more than two attempts at inserting the data into the DB
                 for i in range(2):
                     try:
-                        self.cursor.execute("insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, %i, '%s', '%s', %i)"
+                        self.cursor.execute("insert into pfw_task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, %i, '%s', '%s', %i)"
                                             % (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
                         # commit the change in the case that the process dies, any error info may be saved first
                         self.cursor.execute("commit")
@@ -282,8 +282,8 @@ class Messaging(file):
                 self._message = ""
 
 
-def pfw_message(dbh, pfwattid, taskid, text, level):
-    """ Method to provide direct access to the TASK_MESSAGE for pfwrunjob.py for custom error
+def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_no=0):
+    """ Method to provide direct access to the PFW_TASK_MESSAGE for pfwrunjob.py for custom error
         messages.
 
         Parameters
@@ -302,7 +302,7 @@ def pfw_message(dbh, pfwattid, taskid, text, level):
     """
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')
-    sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
-                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, "pfwrunjob.py", 0)
+    sql = "insert into pfw_task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
+                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
     cursor.execute(sql)
     cursor.execute("commit")
