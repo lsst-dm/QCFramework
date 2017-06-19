@@ -265,7 +265,7 @@ class Messaging(file):
                 # make no more than two attempts at inserting the data into the DB
                 for i in range(2):
                     try:
-                        self.cursor.execute("insert into pfw_task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, %i, '%s', '%s', %i)"
+                        self.cursor.execute("insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, %i, '%s', '%s', %i)"
                                             % (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
                         # commit the change in the case that the process dies, any error info may be saved first
                         self.cursor.execute("commit")
@@ -302,7 +302,7 @@ def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_
     """
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')
-    sql = "insert into pfw_task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
+    sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
                    % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
     cursor.execute(sql)
     cursor.execute("commit")
