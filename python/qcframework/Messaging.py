@@ -41,10 +41,6 @@ class Messaging(file):
             indicates no buffer (all output written immediately).
             Default: 0
 
-        filtr : boolean
-            If True then filter non-ASCII values from the input strings before processing them.
-            Default: False
-
         usedb : boolean
             If True then write matches to the database.
             Default: True
@@ -60,12 +56,13 @@ class Messaging(file):
 
     """
     def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=0,
-                 filtr=False, usedb=True, qcf_patterns=None):
+                 usedb=True, qcf_patterns=None):
         if mode == 'r':
             raise Exception("Invalid mode for log file opening, valid values are 'w' or 'a'.")
         # set some initial values
         self._patterns = []
         self.ignore = []
+        self._filter = []
         self._lineno = 0
         # open the log file if a name is given
         if name is not None:
@@ -76,15 +73,17 @@ class Messaging(file):
             self.fname = ''
             self._file = False
         # set up the pattern dictionary if one is given on the command line
+        override = False
         if qcf_patterns is not None:
             temppat = {}
             priority = 0
+            if 'override' in qcf_patterns.keys():
+            	if qcf_patterns['override'].upper() == 'TRUE':
+            		override = True
             # loop over all patterns
-            for n, pat in qcf_patterns.iteritems():
+            if 'patterns' in qcf_patterns.keys():
+            	for n, pat in qcf_patterns['patterns'].iteritems():
                 # if it lists the exclude items
-                if n == 'exclude':
-                    self.ignore = qcf_patterns['exclude'].split(',')
-                else:
                     # set up a full dict entry
                     priority += 1
                     # set default values
@@ -117,6 +116,27 @@ class Messaging(file):
             keys.sort()
             for k in keys:
                 self._patterns.append(temppat[k])
+
+            if 'excludes' in qcf_patterns.keys():
+            	execs = execname.split(',') + ['global']
+            	for n, pat in qcf_patterns['excludes'].iteritems():
+            		if 'exec' in pat.keys():
+            			if not pat['exec'] in execs:
+            				continue
+            		self.ignore.append(pat['pattern'])
+            if 'filter' in qcf_patterns.keys():
+                execs = execname.split(',') + ['global']
+                for n, pat in qcf_patterns['excludes'].iteritems():
+                    if 'exec' in pat.keys():
+                        if not pat['exec'] in execs:
+                            continue
+                    patrn = {}
+                    patrn['replace_pattern'] = pat['replace_pattern']
+                    if 'with_pattern' in pat.keys():
+                        patrn['with_pattern'] = pat['with_pattern']
+                    self._filter.append(patrn)
+
+
         # connect to the DB if needed
         if dbh is None and usedb: # or not PING
             self.reconnect()
@@ -125,18 +145,23 @@ class Messaging(file):
             self.cursor = dbh.cursor()
         self._pfwattid = int(pfwattid)
         self._taskid = int(taskid)
-        self._filter = filtr
         # get the patterns from the database if needed
         if usedb:
-            if len(self._patterns) == 0:
+            if not override:
                 self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (execname.replace(',', "','")))
                 desc = [d[0].lower() for d in self.cursor.description]
                 for line in self.cursor:
                     self._patterns.append(dict(zip(desc, line)))
-            if len(self.ignore) == 0:
-                self.cursor.execute("select pattern from ops_message_ignore where used='y'")
+
+                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') used='y'"% (execname.replace(',', "','")))
                 for line in self.cursor:
                     self.ignore.append(line[0])
+            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') used='y'"% (execname.replace(',', "','")))
+            desc = [d[0].lower() for d in self.cursor.description]
+            for line in self.cursor:
+                self._filter.append(dict(zip(desc, line)))
+                if self._filter[-1]['with_pattern'] is None:
+                    self._filter[-1]['with_pattern'] = ''
         pats = []
         self._traceback = -1
         # get the pattern id for the 'traceback' entry
@@ -200,11 +225,9 @@ class Messaging(file):
         """
         # filter out any unneeded text
         text = text.rstrip()
-        if self._filter:
-            text = text.replace("[1A", "")
-            text = text.replace(chr(27), "")
-            text = text.replace("[1M", "")
-            text = text.replace("[7m", "")
+        if len(self._filter) > 0:
+            for fltr in self._filter:
+                text = text.replace(fltr['pattern_replace'], fltr['with_pattern'])
         # write out to the log
         if self._file:
             file.write(self, text + "\n")
@@ -258,15 +281,24 @@ class Messaging(file):
                 if len(self._message) > 4000:
                     self._message = self._message[:3998] + '?'
                 # replace any single quotes with double so that they insert into the DB properly
-                self._message = self._message.replace("'", '"')
+                self._message = self._message.replace("'", '\'\'')
 
                 if tid is None:
                     tid = self._taskid
                 # make no more than two attempts at inserting the data into the DB
                 for i in range(2):
                     try:
-                        self.cursor.execute("insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, %i, '%s', '%s', %i)"
-                                            % (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
+                        bind_vals = {'tid':tid,
+                                     'pfwattid':self._pfwattid,
+                                     'msg_time':self.search.findtime(text),
+                                     'lvl':self._patterns[self._indx]['lvl'],
+                                     'pat_id':self._patterns[self._indx]['id'],
+                                     'message':self._message,
+                                     'logfile':self.fname, 
+                                     'lineno':self.mlineno}
+                        sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, ops_message_pattern_id, message, log_file, log_line) values (:tid, :pfwattid, TO_TIMESTAMP(:msg_time, 'YYYY-MM-DD HH24:MI:SS.FF'), :lvl, :pat_id, :message, :logfile, :lineno)"
+                        self.cursor.execute(sql, **bind_vals)
+                                            #% (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
                         # commit the change in the case that the process dies, any error info may be saved first
                         self.cursor.execute("commit")
                         break
@@ -278,6 +310,10 @@ class Messaging(file):
                             if self._file:
                                 self._lineno += 1
                                 file.write(self, "QCF could not write the following to database:\n\t")
+                                file.write(self, self._message)
+                                (extype, exvalue, trback) = sys.exc_info()
+                                traceback.print_exception(extype, exvalue, trback, file=file)
+
                 # reset the message
                 self._message = ""
 
