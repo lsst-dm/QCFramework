@@ -153,10 +153,10 @@ class Messaging(file):
                 for line in self.cursor:
                     self._patterns.append(dict(zip(desc, line)))
 
-                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') used='y'"% (execname.replace(',', "','")))
+                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'"% (execname.replace(',', "','")))
                 for line in self.cursor:
                     self.ignore.append(line[0])
-            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') used='y'"% (execname.replace(',', "','")))
+            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') and used='y'"% (execname.replace(',', "','")))
             desc = [d[0].lower() for d in self.cursor.description]
             for line in self.cursor:
                 self._filter.append(dict(zip(desc, line)))
