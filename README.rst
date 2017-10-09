@@ -5,6 +5,11 @@ QCFramework
 This package provides the infrastructure to scan stdout for specific messages
 and add them to a table.
 
+.. warning::
+
+   The package is a prototype and as such is subject to change and does not
+   meet LSST coding standards.
+
 ****
 
 This code is part of the Dark Energy Survey (DES) Data Management System
