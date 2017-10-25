@@ -67,12 +67,12 @@ class Messaging(file):
         if qcf_patterns is not None:
             temppat = {}
             priority = 0
-            if 'override' in qcf_patterns.keys():
+            if 'override' in list(qcf_patterns.keys()):
                 if qcf_patterns['override'].upper() == 'TRUE':
                     override = True
             # loop over all patterns
-            if 'patterns' in qcf_patterns.keys():
-                for n, pat in qcf_patterns['patterns'].iteritems():
+            if 'patterns' in list(qcf_patterns.keys()):
+                for n, pat in qcf_patterns['patterns'].items():
                     # if it lists the exclude items
                     # set up a full dict entry
                     priority += 1
@@ -85,44 +85,44 @@ class Messaging(file):
                          'priority': priority,
                          'execname': 'global'}
                     # get the pattern
-                    if 'pattern' in pat.keys():
+                    if 'pattern' in list(pat.keys()):
                         p['pattern'] = pat['pattern']
                     else:
                         continue
                     # look for any other items and update as needed
-                    if 'lvl' in pat.keys():
+                    if 'lvl' in list(pat.keys()):
                         p['lvl'] = int(pat['lvl'])
-                    if 'priority' in pat.keys():
+                    if 'priority' in list(pat.keys()):
                         p['priority'] = int(pat['priority'])
-                    if 'execname' in pat.keys():
+                    if 'execname' in list(pat.keys()):
                         p['execname'] = pat['execname']
-                    if 'number_of_lines' in pat.keys():
+                    if 'number_of_lines' in list(pat.keys()):
                         p['number_of_lines'] = int(pat['number_of_lines'])
-                    if 'only_matched' in pat.keys():
+                    if 'only_matched' in list(pat.keys()):
                         p['only_matched'] = pat['only_matched']
                     temppat[p['priority']] = p
             # now put them in order
-            keys = temppat.keys()
+            keys = list(temppat.keys())
             keys.sort()
             for k in keys:
                 self._patterns.append(temppat[k])
 
-            if 'excludes' in qcf_patterns.keys():
+            if 'excludes' in list(qcf_patterns.keys()):
                 execs = execname.split(',') + ['global']
-                for n, pat in qcf_patterns['excludes'].iteritems():
-                    if 'exec' in pat.keys():
+                for n, pat in qcf_patterns['excludes'].items():
+                    if 'exec' in list(pat.keys()):
                         if not pat['exec'] in execs:
                             continue
                     self.ignore.append(pat['pattern'])
-            if 'filter' in qcf_patterns.keys():
+            if 'filter' in list(qcf_patterns.keys()):
                 execs = execname.split(',') + ['global']
-                for n, pat in qcf_patterns['excludes'].iteritems():
-                    if 'exec' in pat.keys():
+                for n, pat in qcf_patterns['excludes'].items():
+                    if 'exec' in list(pat.keys()):
                         if not pat['exec'] in execs:
                             continue
                     patrn = {}
                     patrn['replace_pattern'] = pat['replace_pattern']
-                    if 'with_pattern' in pat.keys():
+                    if 'with_pattern' in list(pat.keys()):
                         patrn['with_pattern'] = pat['with_pattern']
                     self._filter.append(patrn)
 
@@ -141,7 +141,7 @@ class Messaging(file):
                     execname.replace(',', "','")))
                 desc = [d[0].lower() for d in self.cursor.description]
                 for line in self.cursor:
-                    self._patterns.append(dict(zip(desc, line)))
+                    self._patterns.append(dict(list(zip(desc, line))))
 
                 self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'" % (
                     execname.replace(',', "','")))
@@ -151,7 +151,7 @@ class Messaging(file):
                 execname.replace(',', "','")))
             desc = [d[0].lower() for d in self.cursor.description]
             for line in self.cursor:
-                self._filter.append(dict(zip(desc, line)))
+                self._filter.append(dict(list(zip(desc, line))))
                 if self._filter[-1]['with_pattern'] is None:
                     self._filter[-1]['with_pattern'] = ''
         pats = []

@@ -53,7 +53,7 @@ class QCFDB (desdmdbi.DesDmDbi):
             curs.execute(None, [id])
             desc = [d[0].lower() for d in curs.description]
             for line in curs:
-                d = dict(zip(desc, line))
+                d = dict(list(zip(desc, line)))
                 if d['task_id'] not in qcmsg:
                     qcmsg[d['task_id']] = []
 
