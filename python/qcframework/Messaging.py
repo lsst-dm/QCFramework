@@ -6,6 +6,7 @@ import datetime
 import qcframework.Search as Search
 from despydmdb import desdmdbi
 
+
 class Messaging(file):
     """ Class to handle writing logs and scanning the input for messages that need to be inserted
         into the PFW_TASK_MESSAGE table. Patterns which indicate messages which need saving are provided
@@ -55,6 +56,7 @@ class Messaging(file):
             Default: None
 
     """
+
     def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=0,
                  usedb=True, qcf_patterns=None):
         if mode == 'r':
@@ -78,12 +80,12 @@ class Messaging(file):
             temppat = {}
             priority = 0
             if 'override' in qcf_patterns.keys():
-            	if qcf_patterns['override'].upper() == 'TRUE':
-            		override = True
+                if qcf_patterns['override'].upper() == 'TRUE':
+                    override = True
             # loop over all patterns
             if 'patterns' in qcf_patterns.keys():
-            	for n, pat in qcf_patterns['patterns'].iteritems():
-                # if it lists the exclude items
+                for n, pat in qcf_patterns['patterns'].iteritems():
+                    # if it lists the exclude items
                     # set up a full dict entry
                     priority += 1
                     # set default values
@@ -118,12 +120,12 @@ class Messaging(file):
                 self._patterns.append(temppat[k])
 
             if 'excludes' in qcf_patterns.keys():
-            	execs = execname.split(',') + ['global']
-            	for n, pat in qcf_patterns['excludes'].iteritems():
-            		if 'exec' in pat.keys():
-            			if not pat['exec'] in execs:
-            				continue
-            		self.ignore.append(pat['pattern'])
+                execs = execname.split(',') + ['global']
+                for n, pat in qcf_patterns['excludes'].iteritems():
+                    if 'exec' in pat.keys():
+                        if not pat['exec'] in execs:
+                            continue
+                    self.ignore.append(pat['pattern'])
             if 'filter' in qcf_patterns.keys():
                 execs = execname.split(',') + ['global']
                 for n, pat in qcf_patterns['excludes'].iteritems():
@@ -136,7 +138,6 @@ class Messaging(file):
                         patrn['with_pattern'] = pat['with_pattern']
                     self._filter.append(patrn)
 
-
         # connect to the DB if needed
         if dbh is None and usedb: # or not PING
             self.reconnect()
@@ -148,15 +149,18 @@ class Messaging(file):
         # get the patterns from the database if needed
         if usedb:
             if not override:
-                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (execname.replace(',', "','")))
+                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (
+                    execname.replace(',', "','")))
                 desc = [d[0].lower() for d in self.cursor.description]
                 for line in self.cursor:
                     self._patterns.append(dict(zip(desc, line)))
 
-                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'"% (execname.replace(',', "','")))
+                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'" % (
+                    execname.replace(',', "','")))
                 for line in self.cursor:
                     self.ignore.append(line[0])
-            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') and used='y'"% (execname.replace(',', "','")))
+            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') and used='y'" % (
+                execname.replace(',', "','")))
             desc = [d[0].lower() for d in self.cursor.description]
             for line in self.cursor:
                 self._filter.append(dict(zip(desc, line)))
@@ -288,17 +292,17 @@ class Messaging(file):
                 # make no more than two attempts at inserting the data into the DB
                 for i in range(2):
                     try:
-                        bind_vals = {'tid':tid,
-                                     'pfwattid':self._pfwattid,
-                                     'msg_time':self.search.findtime(text),
-                                     'lvl':self._patterns[self._indx]['lvl'],
-                                     'pat_id':self._patterns[self._indx]['id'],
-                                     'message':self._message,
-                                     'logfile':self.fname, 
-                                     'lineno':self.mlineno}
+                        bind_vals = {'tid': tid,
+                                     'pfwattid': self._pfwattid,
+                                     'msg_time': self.search.findtime(text),
+                                     'lvl': self._patterns[self._indx]['lvl'],
+                                     'pat_id': self._patterns[self._indx]['id'],
+                                     'message': self._message,
+                                     'logfile': self.fname,
+                                     'lineno': self.mlineno}
                         sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, ops_message_pattern_id, message, log_file, log_line) values (:tid, :pfwattid, TO_TIMESTAMP(:msg_time, 'YYYY-MM-DD HH24:MI:SS.FF'), :lvl, :pat_id, :message, :logfile, :lineno)"
                         self.cursor.execute(sql, **bind_vals)
-                                            #% (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
+                        #% (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
                         # commit the change in the case that the process dies, any error info may be saved first
                         self.cursor.execute("commit")
                         break
@@ -339,6 +343,6 @@ def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')
     sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
-                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
+        % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
     cursor.execute(sql)
     cursor.execute("commit")

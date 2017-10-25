@@ -16,17 +16,19 @@ import traceback
 import despydmdb.desdmdbi as desdmdbi
 import despymisc.miscutils as miscutils
 
+
 class QCFDB (desdmdbi.DesDmDbi):
     """
     Extend DM DB class with QCF specific functionality
     """
 
-    def __init__ (self, desfile=None, section=None):
+    def __init__(self, desfile=None, section=None):
         try:
-            desdmdbi.DesDmDbi.__init__ (self, desfile, section)
+            desdmdbi.DesDmDbi.__init__(self, desfile, section)
         except Exception as err:
-            miscutils.fwdie("Error: problem connecting to database: %s\n\tCheck desservices file and environment variables" % err, 1)
-            
+            miscutils.fwdie(
+                "Error: problem connecting to database: %s\n\tCheck desservices file and environment variables" % err, 1)
+
     def get_qcf_messages_for_wrappers(self, wrapids):
         """ Query and return rows from QC_PROCESSED_MESSAGE table which are associated with the
             given wrapids. This assumes wrapids is a list of ids corresponding to the pfw_wrapper_id
