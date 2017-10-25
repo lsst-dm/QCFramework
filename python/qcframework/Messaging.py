@@ -1,5 +1,4 @@
-""" This module defines the Messageing Framework
-
+"""This module defines the Messaging Framework.
 """
 import datetime
 
@@ -17,44 +16,33 @@ class Messaging(file):
         --------
         name : str
             Name of the log file to write to.
-
-        execname: str
-            String containing the name of the exec being monitored for output
-
+        execname : str
+            String containing the name of the exec being monitored for output.
         pfwattid : int
-            Int containing the current pfw_attempt_id.
-
-        taskid : int
-            Int containing the task_id of the current task
-            Default: None
-
-        dbh : DB handle
-            Handle to the database. If None then create one.
-            Default: None
-
-        mode : char
-            Character indicating the mode for opening the log file. Valid values are 'w' (write) and
-            'a' (append).
-            Default: 'w'
-
-        buffering : int
-            The number of bytes to buffer before writing to the output log file. A value of 0
-            indicates no buffer (all output written immediately).
-            Default: 0
-
-        usedb : boolean
-            If True then write matches to the database.
-            Default: True
-
-        qcf_patterns: dict
-            Dictionary containing patterns to match instead of those obtained from MEsSAGE_PATTERN.
-            If None then use the values stored in the MESSAGE_PATTERN table. If a dict is given
-            then the entries are assumed to be in descending order of priority (i.e. if one is
-            found in a string then no others lower in the order are searched for). Keys are ignored,
-            with the exception of 'exclude' which is used to give the entries for the ignore list.
-            Each pattern item must have an entry 'pattern' containing the individual pattern.
-            Default: None
-
+            The current pfw_attempt_id.
+        taskid : int, optional
+            The task_id of the current task. Default: None
+        dbh : DB handle, optional
+            Handle to the database. If None then create one, default: None.
+        mode : char, optional
+            Character indicating the mode for opening the log file. Valid
+            values are 'w' (write) and 'a' (append). Default: 'w'.
+        buffering : int, optional
+            The number of bytes to buffer before writing to the output log
+            file. A value of 0 indicates no buffer (all output written
+            immediately). Default: 0
+        usedb : boolean, optional
+            If True then write matches to the database. Default: True
+        qcf_patterns: dict, optional
+            Dictionary containing patterns to match instead of those
+            obtained from MEsSAGE_PATTERN. If None then use the values
+            stored in the MESSAGE_PATTERN table. If a dict is given then the
+            entries are assumed to be in descending order of priority (i.e.
+            if one is found in a string then no others lower in the order
+            are searched for). Keys are ignored, with the exception of
+            'exclude' which is used to give the entries for the ignore list.
+            Each pattern item must have an entry 'pattern' containing the
+            individual pattern. Default: None
     """
 
     def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=0,
@@ -182,33 +170,32 @@ class Messaging(file):
         self._found = False
 
     def reconnect(self):
-        """ Method to reconnect to the database
+        """Method to reconnect to the database.
 
-            Parameters
-            ----------
-            None
+        Parameters
+        ----------
+        None
 
-            Returns
-            -------
-            None
-
+        Returns
+        -------
+        None
         """
         self.dbh = desdmdbi.DesDmDbi()
         self.cursor = self.dbh.cursor()
 
     def setname(self, name):
-        """ Method to set the output file name. This will not create the file, but is used to insert
-            messages directly.
+        """Method to set the output file name.
 
-            Parameters
-            ----------
-            name : str
-                The name of the log file.
+        This will not create the file, but is used to insert messages directly.
 
-            Returns
-            -------
-            None
+        Parameters
+        ----------
+        name : str
+            The name of the log file.
 
+        Returns
+        -------
+        None
         """
         self.fname = name
 
@@ -217,15 +204,13 @@ class Messaging(file):
             and write to the log file. Note that all input lines are written to the log file
             regardless of whether a pattern is found or not.
 
-            Parameters
-            ----------
-            text : str
-                The text to handle, multiline text is supported
-
-            tid : int
-                Task_id of the current task, can be used to override a prent task id.
-                Default: None
-
+        Parameters
+        ----------
+        text : str
+            The text to handle, multiline text is supported.
+        tid : int, optional
+            Task_id of the current task, can be used to override a prent
+            task id. Default: None.
         """
         # filter out any unneeded text
         text = text.rstrip()
@@ -323,22 +308,21 @@ class Messaging(file):
 
 
 def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_no=0):
-    """ Method to provide direct access to the PFW_TASK_MESSAGE for pfwrunjob.py for custom error
-        messages.
+    """Provide direct access to PFW_TASK_MESSAGE.
 
-        Parameters
-        ----------
-        pfwattid : int
-            The current pfw_attempt_id
+    Method to provide direct access to the PFW_TASK_MESSAGE for pfwrunjob.py
+    for custom error messages.
 
-        taskid : int
-            The currrent task_id
-
-        text : str
-            The text to insert into the DB
-
-        level : int
-            The level of the message (1=error, 2=warning, 3=info)
+    Parameters
+    ----------
+    pfwattid : int
+        The current pfw_attempt_id
+    taskid : int
+        The currrent task_id
+    text : str
+        The text to insert into the DB
+    level : int
+        The level of the message (1=error, 2=warning, 3=info)
     """
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')

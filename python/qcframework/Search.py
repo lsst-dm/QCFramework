@@ -1,5 +1,4 @@
-""" Nodule to search for regex in text strings
-
+"""Module to search for regex in text strings.
 """
 
 import re
@@ -9,19 +8,21 @@ import datetime
 
 
 class Search(object):
-    """ Class to compare a string to values in the MESSAGE_PATTERN table and return which pattern
-        was matched. Any string which matches any entry in the MESSAGE_IGNORE table is disregarded,
-        regardless of any matches from MESSAGE_PATTERN.
+    """Class to compare a string to values in the MESSAGE_PATTERN table.
 
-        Keywords
-        --------
-        patterns : dict
-            Dictionary containing the patterns from MESSAGE_PATTERN and associated data
+    Class to compare a string to values in the MESSAGE_PATTERN table and
+    return which pattern was matched. Any string which matches any entry in
+    the MESSAGE_IGNORE table is disregarded, regardless of any matches from
+    MESSAGE_PATTERN.
 
-        exclude : list
-            List of patterns from MESSAGE_IGNORE.
-            Default: []
+    Parameters
+    ----------
+    patterns : dict
+        Dictionary containing the patterns from MESSAGE_PATTERN and
+        associated data.
 
+    exclude : list
+        List of patterns from MESSAGE_IGNORE, defaults to [].
     """
 
     def __init__(self, patterns, exclude=[]):
@@ -47,16 +48,16 @@ class Search(object):
         self._timepat2 = re.compile(r'(\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\.?\d*)')
 
     def search(self, string):
-        """ Method to preform the searches
+        """Method to preform the searches.
 
-            Parameters
-            ----------
-            string : str
-                The string to search for patterns in
+        Parameters
+        ----------
+        string : str
+            The string to search for patterns in
 
-            Returns
-            -------
-            Tuple containing the index of the first match and the matched text
+        Returns
+        -------
+        Tuple containing the index of the first match and the matched text.
         """
         # search for any matches from MESSAGE_IGNORE, if any are found then ignore the string and return
         for exp in self._exclude:
@@ -71,17 +72,17 @@ class Search(object):
                 return (None, '')
 
     def findtime(self, string):
-        """ Method to search the given string for any date/time stamps
+        """Method to search the given string for any date/time stamps.
 
-            Parameters
-            ----------
-            string : str
-                String containing the text to search
+        Parameters
+        ----------
+        string : str
+            String containing the text to search
 
-            Returns
-            -------
-            String containing either the found date/time or the current time if none were found
-
+        Returns
+        -------
+        String containing either the found date/time or the current time if
+        none were found.
         """
         match = self._timepat.search(string)
         if match:
