@@ -1,10 +1,6 @@
-# $Id: qcfdb.py 38172 2015-05-11 18:49:35Z mgower $
-# $Rev:: 38172                            $:  # Revision of last commit.
-# $LastChangedBy:: mgower                 $:  # Author of last commit.
-# $LastChangedDate:: 2015-05-11 13:49:35 #$:  # Date of last commit.
+"""Define a database utility class.
 
-"""
-    Define a database utility class extending DM DB class with QCF specific functionality
+It extends DM DB class with QCF specific functionality.
 """
 
 __version__ = "$Rev: 38172 $"
@@ -16,30 +12,33 @@ import traceback
 import despydmdb.desdmdbi as desdmdbi
 import despymisc.miscutils as miscutils
 
+
 class QCFDB (desdmdbi.DesDmDbi):
-    """
-    Extend DM DB class with QCF specific functionality
+    """Extend DM DB class with QCF specific functionality.
     """
 
-    def __init__ (self, desfile=None, section=None):
+    def __init__(self, desfile=None, section=None):
         try:
-            desdmdbi.DesDmDbi.__init__ (self, desfile, section)
+            desdmdbi.DesDmDbi.__init__(self, desfile, section)
         except Exception as err:
-            miscutils.fwdie("Error: problem connecting to database: %s\n\tCheck desservices file and environment variables" % err, 1)
-            
+            miscutils.fwdie(
+                "Error: problem connecting to database: %s\n\tCheck desservices file and environment variables" % err, 1)
+
     def get_qcf_messages_for_wrappers(self, wrapids):
-        """ Query and return rows from QC_PROCESSED_MESSAGE table which are associated with the
-            given wrapids. This assumes wrapids is a list of ids corresponding to the pfw_wrapper_id
-            column.
+        """Query and return rows from QC_PROCESSED_MESSAGE table.
 
-            Parameters
-            ----------
-            wrapids : list
-                List containing the wrapper ids.
+        Those rows  are associated with the given wrapids. This assumes
+        wrapids is a list of ids corresponding to the pfw_wrapper_id column.
 
-            Returns
-            -------
-            Dictionary containing the messages (and associated data) from the requested ids
+        Parameters
+        ----------
+        wrapids : list
+            List containing the wrapper ids.
+
+        Returns
+        -------
+        Dictionary containing the messages (and associated data) from
+        the requested ids.
         """
         # generate the sql
         sql = "select * from task_message where task_id=%s" % (self.get_positional_bind_string(1))
@@ -54,7 +53,7 @@ class QCFDB (desdmdbi.DesDmDbi):
             curs.execute(None, [id])
             desc = [d[0].lower() for d in curs.description]
             for line in curs:
-                d = dict(zip(desc, line))
+                d = dict(list(zip(desc, line)))
                 if d['task_id'] not in qcmsg:
                     qcmsg[d['task_id']] = []
 

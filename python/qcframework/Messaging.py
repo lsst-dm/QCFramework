@@ -1,10 +1,10 @@
-""" This module defines the Messageing Framework
-
+"""This module defines the Messaging Framework.
 """
 import datetime
 
 import qcframework.Search as Search
 from despydmdb import desdmdbi
+
 
 class Messaging(file):
     """ Class to handle writing logs and scanning the input for messages that need to be inserted
@@ -16,45 +16,35 @@ class Messaging(file):
         --------
         name : str
             Name of the log file to write to.
-
-        execname: str
-            String containing the name of the exec being monitored for output
-
+        execname : str
+            String containing the name of the exec being monitored for output.
         pfwattid : int
-            Int containing the current pfw_attempt_id.
-
-        taskid : int
-            Int containing the task_id of the current task
-            Default: None
-
-        dbh : DB handle
-            Handle to the database. If None then create one.
-            Default: None
-
-        mode : char
-            Character indicating the mode for opening the log file. Valid values are 'w' (write) and
-            'a' (append).
-            Default: 'w'
-
-        buffering : int
-            The number of bytes to buffer before writing to the output log file. A value of 0
-            indicates no buffer (all output written immediately).
-            Default: 0
-
-        usedb : boolean
-            If True then write matches to the database.
-            Default: True
-
-        qcf_patterns: dict
-            Dictionary containing patterns to match instead of those obtained from MEsSAGE_PATTERN.
-            If None then use the values stored in the MESSAGE_PATTERN table. If a dict is given
-            then the entries are assumed to be in descending order of priority (i.e. if one is
-            found in a string then no others lower in the order are searched for). Keys are ignored,
-            with the exception of 'exclude' which is used to give the entries for the ignore list.
-            Each pattern item must have an entry 'pattern' containing the individual pattern.
-            Default: None
-
+            The current pfw_attempt_id.
+        taskid : int, optional
+            The task_id of the current task. Default: None
+        dbh : DB handle, optional
+            Handle to the database. If None then create one, default: None.
+        mode : char, optional
+            Character indicating the mode for opening the log file. Valid
+            values are 'w' (write) and 'a' (append). Default: 'w'.
+        buffering : int, optional
+            The number of bytes to buffer before writing to the output log
+            file. A value of 0 indicates no buffer (all output written
+            immediately). Default: 0
+        usedb : boolean, optional
+            If True then write matches to the database. Default: True
+        qcf_patterns: dict, optional
+            Dictionary containing patterns to match instead of those
+            obtained from MEsSAGE_PATTERN. If None then use the values
+            stored in the MESSAGE_PATTERN table. If a dict is given then the
+            entries are assumed to be in descending order of priority (i.e.
+            if one is found in a string then no others lower in the order
+            are searched for). Keys are ignored, with the exception of
+            'exclude' which is used to give the entries for the ignore list.
+            Each pattern item must have an entry 'pattern' containing the
+            individual pattern. Default: None
     """
+
     def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=0,
                  usedb=True, qcf_patterns=None):
         if mode == 'r':
@@ -77,13 +67,13 @@ class Messaging(file):
         if qcf_patterns is not None:
             temppat = {}
             priority = 0
-            if 'override' in qcf_patterns.keys():
-            	if qcf_patterns['override'].upper() == 'TRUE':
-            		override = True
+            if 'override' in list(qcf_patterns.keys()):
+                if qcf_patterns['override'].upper() == 'TRUE':
+                    override = True
             # loop over all patterns
-            if 'patterns' in qcf_patterns.keys():
-            	for n, pat in qcf_patterns['patterns'].iteritems():
-                # if it lists the exclude items
+            if 'patterns' in list(qcf_patterns.keys()):
+                for n, pat in qcf_patterns['patterns'].items():
+                    # if it lists the exclude items
                     # set up a full dict entry
                     priority += 1
                     # set default values
@@ -95,47 +85,46 @@ class Messaging(file):
                          'priority': priority,
                          'execname': 'global'}
                     # get the pattern
-                    if 'pattern' in pat.keys():
+                    if 'pattern' in list(pat.keys()):
                         p['pattern'] = pat['pattern']
                     else:
                         continue
                     # look for any other items and update as needed
-                    if 'lvl' in pat.keys():
+                    if 'lvl' in list(pat.keys()):
                         p['lvl'] = int(pat['lvl'])
-                    if 'priority' in pat.keys():
+                    if 'priority' in list(pat.keys()):
                         p['priority'] = int(pat['priority'])
-                    if 'execname' in pat.keys():
+                    if 'execname' in list(pat.keys()):
                         p['execname'] = pat['execname']
-                    if 'number_of_lines' in pat.keys():
+                    if 'number_of_lines' in list(pat.keys()):
                         p['number_of_lines'] = int(pat['number_of_lines'])
-                    if 'only_matched' in pat.keys():
+                    if 'only_matched' in list(pat.keys()):
                         p['only_matched'] = pat['only_matched']
                     temppat[p['priority']] = p
             # now put them in order
-            keys = temppat.keys()
+            keys = list(temppat.keys())
             keys.sort()
             for k in keys:
                 self._patterns.append(temppat[k])
 
-            if 'excludes' in qcf_patterns.keys():
-            	execs = execname.split(',') + ['global']
-            	for n, pat in qcf_patterns['excludes'].iteritems():
-            		if 'exec' in pat.keys():
-            			if not pat['exec'] in execs:
-            				continue
-            		self.ignore.append(pat['pattern'])
-            if 'filter' in qcf_patterns.keys():
+            if 'excludes' in list(qcf_patterns.keys()):
                 execs = execname.split(',') + ['global']
-                for n, pat in qcf_patterns['excludes'].iteritems():
-                    if 'exec' in pat.keys():
+                for n, pat in qcf_patterns['excludes'].items():
+                    if 'exec' in list(pat.keys()):
+                        if not pat['exec'] in execs:
+                            continue
+                    self.ignore.append(pat['pattern'])
+            if 'filter' in list(qcf_patterns.keys()):
+                execs = execname.split(',') + ['global']
+                for n, pat in qcf_patterns['excludes'].items():
+                    if 'exec' in list(pat.keys()):
                         if not pat['exec'] in execs:
                             continue
                     patrn = {}
                     patrn['replace_pattern'] = pat['replace_pattern']
-                    if 'with_pattern' in pat.keys():
+                    if 'with_pattern' in list(pat.keys()):
                         patrn['with_pattern'] = pat['with_pattern']
                     self._filter.append(patrn)
-
 
         # connect to the DB if needed
         if dbh is None and usedb: # or not PING
@@ -148,18 +137,21 @@ class Messaging(file):
         # get the patterns from the database if needed
         if usedb:
             if not override:
-                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (execname.replace(',', "','")))
+                self.cursor.execute("select id, pattern, lvl, only_matched, number_of_lines from ops_message_pattern where execname in ('global','%s') and used='y' order by priority" % (
+                    execname.replace(',', "','")))
                 desc = [d[0].lower() for d in self.cursor.description]
                 for line in self.cursor:
-                    self._patterns.append(dict(zip(desc, line)))
+                    self._patterns.append(dict(list(zip(desc, line))))
 
-                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'"% (execname.replace(',', "','")))
+                self.cursor.execute("select pattern from ops_message_ignore where execname in ('global','%s') and  used='y'" % (
+                    execname.replace(',', "','")))
                 for line in self.cursor:
                     self.ignore.append(line[0])
-            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') and used='y'"% (execname.replace(',', "','")))
+            self.cursor.execute("select replace_pattern, with_pattern from ops_message_filter where execname in ('global','%s') and used='y'" % (
+                execname.replace(',', "','")))
             desc = [d[0].lower() for d in self.cursor.description]
             for line in self.cursor:
-                self._filter.append(dict(zip(desc, line)))
+                self._filter.append(dict(list(zip(desc, line))))
                 if self._filter[-1]['with_pattern'] is None:
                     self._filter[-1]['with_pattern'] = ''
         pats = []
@@ -178,33 +170,32 @@ class Messaging(file):
         self._found = False
 
     def reconnect(self):
-        """ Method to reconnect to the database
+        """Method to reconnect to the database.
 
-            Parameters
-            ----------
-            None
+        Parameters
+        ----------
+        None
 
-            Returns
-            -------
-            None
-
+        Returns
+        -------
+        None
         """
         self.dbh = desdmdbi.DesDmDbi()
         self.cursor = self.dbh.cursor()
 
     def setname(self, name):
-        """ Method to set the output file name. This will not create the file, but is used to insert
-            messages directly.
+        """Method to set the output file name.
 
-            Parameters
-            ----------
-            name : str
-                The name of the log file.
+        This will not create the file, but is used to insert messages directly.
 
-            Returns
-            -------
-            None
+        Parameters
+        ----------
+        name : str
+            The name of the log file.
 
+        Returns
+        -------
+        None
         """
         self.fname = name
 
@@ -213,15 +204,13 @@ class Messaging(file):
             and write to the log file. Note that all input lines are written to the log file
             regardless of whether a pattern is found or not.
 
-            Parameters
-            ----------
-            text : str
-                The text to handle, multiline text is supported
-
-            tid : int
-                Task_id of the current task, can be used to override a prent task id.
-                Default: None
-
+        Parameters
+        ----------
+        text : str
+            The text to handle, multiline text is supported.
+        tid : int, optional
+            Task_id of the current task, can be used to override a prent
+            task id. Default: None.
         """
         # filter out any unneeded text
         text = text.rstrip()
@@ -288,17 +277,17 @@ class Messaging(file):
                 # make no more than two attempts at inserting the data into the DB
                 for i in range(2):
                     try:
-                        bind_vals = {'tid':tid,
-                                     'pfwattid':self._pfwattid,
-                                     'msg_time':self.search.findtime(text),
-                                     'lvl':self._patterns[self._indx]['lvl'],
-                                     'pat_id':self._patterns[self._indx]['id'],
-                                     'message':self._message,
-                                     'logfile':self.fname, 
-                                     'lineno':self.mlineno}
+                        bind_vals = {'tid': tid,
+                                     'pfwattid': self._pfwattid,
+                                     'msg_time': self.search.findtime(text),
+                                     'lvl': self._patterns[self._indx]['lvl'],
+                                     'pat_id': self._patterns[self._indx]['id'],
+                                     'message': self._message,
+                                     'logfile': self.fname,
+                                     'lineno': self.mlineno}
                         sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, ops_message_pattern_id, message, log_file, log_line) values (:tid, :pfwattid, TO_TIMESTAMP(:msg_time, 'YYYY-MM-DD HH24:MI:SS.FF'), :lvl, :pat_id, :message, :logfile, :lineno)"
                         self.cursor.execute(sql, **bind_vals)
-                                            #% (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
+                        #% (tid, self._pfwattid, self.search.findtime(text), self._patterns[self._indx]['lvl'], self._patterns[self._indx]['id'], self._message, self.fname, self.mlineno))
                         # commit the change in the case that the process dies, any error info may be saved first
                         self.cursor.execute("commit")
                         break
@@ -319,26 +308,25 @@ class Messaging(file):
 
 
 def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_no=0):
-    """ Method to provide direct access to the PFW_TASK_MESSAGE for pfwrunjob.py for custom error
-        messages.
+    """Provide direct access to PFW_TASK_MESSAGE.
 
-        Parameters
-        ----------
-        pfwattid : int
-            The current pfw_attempt_id
+    Method to provide direct access to the PFW_TASK_MESSAGE for pfwrunjob.py
+    for custom error messages.
 
-        taskid : int
-            The currrent task_id
-
-        text : str
-            The text to insert into the DB
-
-        level : int
-            The level of the message (1=error, 2=warning, 3=info)
+    Parameters
+    ----------
+    pfwattid : int
+        The current pfw_attempt_id
+    taskid : int
+        The currrent task_id
+    text : str
+        The text to insert into the DB
+    level : int
+        The level of the message (1=error, 2=warning, 3=info)
     """
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')
     sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
-                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
+        % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
     cursor.execute(sql)
     cursor.execute("commit")
