@@ -341,6 +341,6 @@ def pfw_message(dbh, pfwattid, taskid, text, level, log_file='runjob.out', line_
     cursor = dbh.cursor()
     text2 = text.replace("'", '"')
     sql = "insert into task_message (task_id, pfw_attempt_id, message_time, message_lvl, message_pattern_id, message, log_file, log_line) values (%i, %i, TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS.FF'), %i, 0, '%s', '%s', %i)" \
-                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, logfile, line_no)
+                   % (int(taskid), int(pfwattid), datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'), level, text2, log_file, line_no)
     cursor.execute(sql)
     cursor.execute("commit")
