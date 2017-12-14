@@ -1,13 +1,6 @@
-# $Id: qcfdb.py 38172 2015-05-11 18:49:35Z mgower $
-# $Rev:: 38172                            $:  # Revision of last commit.
-# $LastChangedBy:: mgower                 $:  # Author of last commit.
-# $LastChangedDate:: 2015-05-11 13:49:35 #$:  # Date of last commit.
-
 """
     Define a database utility class extending DM DB class with QCF specific functionality
 """
-
-__version__ = "$Rev: 38172 $"
 
 import os
 import sys
@@ -15,6 +8,7 @@ import traceback
 
 import despydmdb.desdmdbi as desdmdbi
 import despymisc.miscutils as miscutils
+
 
 class QCFDB (desdmdbi.DesDmDbi):
     """
