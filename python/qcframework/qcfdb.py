@@ -3,14 +3,13 @@
 It extends DM DB class with QCF specific functionality.
 """
 
-__version__ = "$Rev: 38172 $"
-
 import os
 import sys
 import traceback
 
 import despydmdb.desdmdbi as desdmdbi
 import despymisc.miscutils as miscutils
+
 
 
 class QCFDB (desdmdbi.DesDmDbi):
