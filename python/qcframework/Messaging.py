@@ -54,6 +54,8 @@ class Messaging(file):
         self.ignore = []
         self._filter = []
         self._lineno = 0
+        self.mlineno = 0
+        self.usedb = usedb
         # open the log file if a name is given
         if name is not None:
             self._file = True
@@ -127,11 +129,15 @@ class Messaging(file):
                     self._filter.append(patrn)
 
         # connect to the DB if needed
-        if dbh is None and usedb: # or not PING
-            self.reconnect()
+        if self.usedb:
+            if dbh is None: # or not PING
+                self.reconnect()
+            else:
+                self.dbh = dbh
+                self.cursor = dbh.cursor()
         else:
-            self.dbh = dbh
-            self.cursor = dbh.cursor()
+            self.dbh = None
+            self.cursor = None
         self._pfwattid = int(pfwattid)
         self._taskid = int(taskid)
         # get the patterns from the database if needed
@@ -220,7 +226,9 @@ class Messaging(file):
         # write out to the log
         if self._file:
             file.write(self, text + "\n")
-
+        # if not using the DB then exit
+        if not self.usedb:
+            return
         # split the text up into individual lines
         text_list = text.split("\n")
         # loop over each line
@@ -301,7 +309,7 @@ class Messaging(file):
                                 file.write(self, "QCF could not write the following to database:\n\t")
                                 file.write(self, self._message)
                                 (extype, exvalue, trback) = sys.exc_info()
-                                traceback.print_exception(extype, exvalue, trback, file=file)
+                                traceback.print_exception(extype, exvalue, trback, file=open(self.fname,'a'))
 
                 # reset the message
                 self._message = ""
