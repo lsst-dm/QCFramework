@@ -8,7 +8,7 @@ import qcframework.Search as Search
 from despydmdb import desdmdbi
 
 
-class Messaging(file):
+class Messaging(object):
     """ Class to handle writing logs and scanning the input for messages that need to be inserted
         into the PFW_TASK_MESSAGE table. Patterns which indicate messages which need saving are provided
         in the PFW_MESSAGE_PATTERN table and patterns which indicated messages to be ignored are
@@ -60,12 +60,11 @@ class Messaging(file):
         self.usedb = usedb
         # open the log file if a name is given
         if name is not None:
-            self._file = True
             self.fname = name
-            file.__init__(self, name=name, mode=mode, buffering=buffering)
+            self._file = open(name, mode=mode, buffering=buffering)
         else:
             self.fname = ''
-            self._file = False
+            self._file = None
         # set up the pattern dictionary if one is given on the command line
         override = False
         if qcf_patterns is not None:
@@ -226,8 +225,8 @@ class Messaging(file):
             for fltr in self._filter:
                 text = text.replace(fltr['pattern_replace'], fltr['with_pattern'])
         # write out to the log
-        if self._file:
-            file.write(self, text + "\n")
+        if self._file is not None:
+            self._file.write(text + "\n")
         # if not using the DB then exit
         if not self.usedb:
             return
@@ -306,12 +305,12 @@ class Messaging(file):
                         self.reconnect()
                         # if two attempts have been made and failed then write a message to the log file
                         if i == 1:
-                            if self._file:
+                            if self._file is not None:
                                 self._lineno += 1
-                                file.write(self, "QCF could not write the following to database:\n\t")
-                                file.write(self, self._message)
+                                self._file.write("QCF could not write the following to database:\n\t")
+                                self._file.write(self._message)
                                 (extype, exvalue, trback) = sys.exc_info()
-                                traceback.print_exception(extype, exvalue, trback, file=open(self.fname,'a'))
+                                traceback.print_exception(extype, exvalue, trback, file=self._file)
 
                 # reset the message
                 self._message = ""
