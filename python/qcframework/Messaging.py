@@ -32,7 +32,7 @@ class Messaging(object):
         buffering : int, optional
             The number of bytes to buffer before writing to the output log
             file. A value of 0 indicates no buffer (all output written
-            immediately). Default: 0
+            immediately). Default: -1 (Python default buffering policy)
         usedb : boolean, optional
             If True then write matches to the database. Default: True
         qcf_patterns: dict, optional
@@ -47,7 +47,7 @@ class Messaging(object):
             individual pattern. Default: None
     """
 
-    def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=0,
+    def __init__(self, name, execname, pfwattid, taskid=None, dbh=None, mode='w', buffering=-1,
                  usedb=True, qcf_patterns=None):
         if mode == 'r':
             raise Exception("Invalid mode for log file opening, valid values are 'w' or 'a'.")
